@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Categories</title>
+</head>
+<body>
+    <form method="get" action="{% url 'category_view' %}">
+        <select name="category">
+            <option value="">Category</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="search" placeholder="Subcategory Name" value="{{ search_query }}">
+        <button type="submit">Search</button>
+    </form>
+
+    {% for category in categories %}
+        <div>
+            <h3>{{ category.name }}</h3>
+            <ul>
+                {% for subcategory in category.subcategories.all %}
+                    <li>{{ subcategory.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endfor %}
+</body>
+</html>
