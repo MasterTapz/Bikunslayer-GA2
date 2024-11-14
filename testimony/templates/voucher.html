@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voucher Purchase</title>
+</head>
+<body>
+    <!-- Voucher Purchase Section -->
+    <div style="border: 1px solid #ddd; padding: 20px; margin: 20px;">
+        <h2>Purchase Voucher</h2>
+        <button id="buyButton">Buy Voucher</button>
+        
+        <!-- Success Modal -->
+        <div id="successModal" style="display: none; border: 1px solid #4CAF50; padding: 10px; margin-top: 10px;">
+            <h3 style="color: #4CAF50;">Success</h3>
+            <p>Congrats! You have successfully bought a voucher with the code XXX.</p>
+            <p>This voucher can be used until XX/XX/XXXX with X number of usage quota.</p>
+            <button onclick="closeModal('successModal')">Close</button>
+        </div>
+
+        <!-- Failure Modal -->
+        <div id="failureModal" style="display: none; border: 1px solid #f44336; padding: 10px; margin-top: 10px;">
+            <h3 style="color: #f44336;">Failed</h3>
+            <p>Sorry, your balance is not enough to buy this voucher.</p>
+            <button onclick="closeModal('failureModal')">Close</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("buyButton").addEventListener("click", function() {
+            let balanceSufficient = true; // Change this based on balance check logic
+
+            if (balanceSufficient) {
+                document.getElementById("successModal").style.display = "block";
+            } else {
+                document.getElementById("failureModal").style.display = "block";
+            }
+        });
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = "none";
+        }
+    </script>
+</body>
+</html>
