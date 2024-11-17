@@ -3,39 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ subcategory.name }}</title>
+    <title>Subcategory Name</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold mb-4">{{ subcategory.name }}</h1>
-        <p class="text-gray-600 mb-6">{{ subcategory.description }}</p>
+    <div class="container mx-auto px-4 py-8 bg-white shadow-md rounded-md">
+
+        <!-- Header Section -->
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold">Subcategory Name</h1>
+            <h2 class="text-lg font-semibold bg-gray-200 px-4 py-2 rounded-md">Category Name</h2>
+        </div>
+
+        <!-- Description Section -->
+        <div class="mb-8">
+            <p class="text-gray-600 p-4 rounded-md border">DESC</p>
+        </div>
 
         <!-- Service Sessions -->
         <div class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Service Sessions</h2>
+            <h2 class="text-xl font-semibold mb-4">Service Session Option</h2>
             <div class="space-y-4">
-                {% for session in sessions %}
-                <div class="flex justify-between items-center bg-white shadow-md rounded-md px-4 py-3">
+                <div class="flex justify-between items-center bg-gray-50 shadow-md rounded-md px-4 py-3">
                     <div>
-                        <h3 class="text-lg font-semibold">{{ session.name }}</h3>
-                        <p class="text-gray-500">${{ session.price }}</p>
+                        <h3 class="text-lg font-semibold">Session 1</h3>
+                        <p class="text-gray-500">$100</p>
                     </div>
                     <button class="bg-blue-500 text-white rounded-md px-4 py-2">Book Service</button>
                 </div>
-                {% endfor %}
+                <div class="flex justify-between items-center bg-gray-50 shadow-md rounded-md px-4 py-3">
+                    <div>
+                        <h3 class="text-lg font-semibold">Session 2</h3>
+                        <p class="text-gray-500">$150</p>
+                    </div>
+                    <button class="bg-blue-500 text-white rounded-md px-4 py-2">Book Service</button>
+                </div>
             </div>
         </div>
 
-        <!-- Workers -->
+        <!-- Workers Section -->
         <div class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Available Workers</h2>
+            <h2 class="text-xl font-semibold mb-4">Workers</h2>
             <div class="grid grid-cols-4 gap-4">
-                {% for worker in workers %}
-                <div class="bg-white shadow-md rounded-md p-4 text-center">
-                    <p class="font-semibold">{{ worker.user.username }}</p>
+                <div class="bg-gray-50 shadow-md rounded-md p-4 text-center">
+                    <p class="font-semibold">Worker Name 1</p>
                 </div>
-                {% endfor %}
+                <div class="bg-gray-50 shadow-md rounded-md p-4 text-center">
+                    <p class="font-semibold">Worker Name 2</p>
+                </div>
+                <div class="bg-gray-50 shadow-md rounded-md p-4 text-center">
+                    <p class="font-semibold">Worker Name 3</p>
+                </div>
+                <div class="bg-gray-50 shadow-md rounded-md p-4 text-center">
+                    <p class="font-semibold">Worker Name 4</p>
+                </div>
             </div>
         </div>
 
@@ -43,13 +64,16 @@
         <div>
             <h2 class="text-xl font-semibold mb-4">Testimonials</h2>
             <div class="space-y-4">
-                {% for testimonial in testimonials %}
-                <div class="bg-white shadow-md rounded-md p-4">
-                    <p class="font-semibold">{{ testimonial.user.username }} - {{ testimonial.date }}</p>
-                    <p class="text-gray-600">{{ testimonial.text }}</p>
-                    <p class="text-sm text-gray-500">Worker: {{ testimonial.worker.user.username }}, Rating: {{ testimonial.rate }}</p>
+                <div class="bg-gray-50 shadow-md rounded-md p-4">
+                    <p class="font-semibold">User Name 1</p>
+                    <p class="text-gray-600">WOW</p>
+                    <p class="text-sm text-gray-500">Worker: Worker Name 1, Rating: 5</p>
                 </div>
-                {% endfor %}
+                <div class="bg-gray-50 shadow-md rounded-md p-4">
+                    <p class="font-semibold">User Name 2</p>
+                    <p class="text-gray-600">COOL</p>
+                    <p class="text-sm text-gray-500">Worker: Worker Name 2, Rating: 4</p>
+                </div>
             </div>
         </div>
     </div>
