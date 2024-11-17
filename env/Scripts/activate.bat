@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Darren_Kuliah\SEMESTER 3\Basdat\BikunSlayer\Bikunslayer-GA2\env
+set VIRTUAL_ENV=C:\Users\ASUS\Desktop\Bikunslayer-GA2\env
 
 if not defined PROMPT set PROMPT=$P$G
 
