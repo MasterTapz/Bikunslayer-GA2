@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+  <!-- Container -->
+  <div class="flex justify-center items-center min-h-screen">
+    <div class="bg-white shadow-md rounded-lg p-8 w-full max-w-xl">
+      <h1 class="text-2xl font-bold mb-6 text-center">Register</h1>
+
+      <!-- Role Selection -->
+      <div class="mb-6">
+        <label class="block text-gray-700 font-semibold mb-2">Select Role:</label>
+        <div class="flex gap-4">
+          <button id="select-user" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">User</button>
+          <button id="select-worker" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">Worker</button>
+        </div>
+      </div>
+
+      <!-- User Form -->
+      <form id="user-form" action="/register_user" method="POST" class="hidden">
+        <h2 class="text-xl font-bold mb-4">User Registration</h2>
+
+        <!-- Name -->
+        <div class="mb-4">
+          <label for="user-name" class="block text-gray-700 font-semibold mb-2">Name:</label>
+          <input type="text" id="user-name" name="name" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-4">
+          <label for="user-password" class="block text-gray-700 font-semibold mb-2">Password:</label>
+          <input type="password" id="user-password" name="password" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Phone Number -->
+        <div class="mb-4">
+          <label for="user-phone" class="block text-gray-700 font-semibold mb-2">Phone Number:</label>
+          <input type="text" id="user-phone" name="phone_number" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Birth Date -->
+        <div class="mb-4">
+          <label for="user-birth" class="block text-gray-700 font-semibold mb-2">Birth Date:</label>
+          <input type="date" id="user-birth" name="birth_date" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Address -->
+        <div class="mb-4">
+          <label for="user-address" class="block text-gray-700 font-semibold mb-2">Address:</label>
+          <textarea id="user-address" name="address" class="w-full p-2 border border-gray-300 rounded-md" rows="3" required></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Register</button>
+      </form>
+
+      <!-- Worker Form -->
+      <form id="worker-form" action="/register_worker" method="POST" class="hidden">
+        <h2 class="text-xl font-bold mb-4">Worker Registration</h2>
+
+        <!-- Name -->
+        <div class="mb-4">
+          <label for="worker-name" class="block text-gray-700 font-semibold mb-2">Name:</label>
+          <input type="text" id="worker-name" name="name" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-4">
+          <label for="worker-password" class="block text-gray-700 font-semibold mb-2">Password:</label>
+          <input type="password" id="worker-password" name="password" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Phone Number -->
+        <div class="mb-4">
+          <label for="worker-phone" class="block text-gray-700 font-semibold mb-2">Phone Number:</label>
+          <input type="text" id="worker-phone" name="phone_number" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Bank Name -->
+        <div class="mb-4">
+          <label for="bank-name" class="block text-gray-700 font-semibold mb-2">Bank Name:</label>
+          <select id="bank-name" name="bank_name" class="w-full p-2 border border-gray-300 rounded-md" required>
+            <option value="GoPay">GoPay</option>
+            <option value="OVO">OVO</option>
+            <option value="Virtual Account BCA">Virtual Account BCA</option>
+            <option value="Virtual Account BNI">Virtual Account BNI</option>
+            <option value="Virtual Account Mandiri">Virtual Account Mandiri</option>
+          </select>
+        </div>
+
+        <!-- Account Number -->
+        <div class="mb-4">
+          <label for="account-number" class="block text-gray-700 font-semibold mb-2">Account Number:</label>
+          <input type="text" id="account-number" name="account_number" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- NPWP -->
+        <div class="mb-4">
+          <label for="npwp" class="block text-gray-700 font-semibold mb-2">NPWP:</label>
+          <input type="text" id="npwp" name="npwp" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <button type="submit" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">Register</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JavaScript to Toggle Forms -->
+  <script>
+    const userForm = document.getElementById("user-form");
+    const workerForm = document.getElementById("worker-form");
+    const selectUser = document.getElementById("select-user");
+    const selectWorker = document.getElementById("select-worker");
+
+    selectUser.addEventListener("click", () => {
+      userForm.classList.remove("hidden");
+      workerForm.classList.add("hidden");
+    });
+
+    selectWorker.addEventListener("click", () => {
+      workerForm.classList.remove("hidden");
+      userForm.classList.add("hidden");
+    });
+  </script>
+</body>
+</html>
