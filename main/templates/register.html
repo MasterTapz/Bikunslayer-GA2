@@ -37,6 +37,20 @@
           <label for="user-password" class="block text-gray-700 font-semibold mb-2">Password:</label>
           <input type="password" id="user-password" name="password" class="w-full p-2 border border-gray-300 rounded-md" required>
         </div>
+            <!-- Sex -->
+            <div class="mb-4">
+              <label class="block text-gray-700 font-semibold mb-2">Sex:</label>
+              <div>
+                <label for="male" class="mr-4">
+                  <input type="radio" id="male" name="sex" value="male" class="mr-2" required>
+                  Male
+                </label>
+                <label for="female" class="mr-4">
+                  <input type="radio" id="female" name="sex" value="female" class="mr-2" required>
+                  Female
+                </label>
+              </div>
+            </div>
 
         <!-- Phone Number -->
         <div class="mb-4">
@@ -59,6 +73,7 @@
         <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Register</button>
       </form>
 
+
       <!-- Worker Form -->
       <form id="worker-form" action="/register_worker" method="POST" class="hidden">
         <h2 class="text-xl font-bold mb-4">Worker Registration</h2>
@@ -74,11 +89,37 @@
           <label for="worker-password" class="block text-gray-700 font-semibold mb-2">Password:</label>
           <input type="password" id="worker-password" name="password" class="w-full p-2 border border-gray-300 rounded-md" required>
         </div>
+        <!-- Sex -->
+        <div class="mb-4">
+          <label class="block text-gray-700 font-semibold mb-2">Sex:</label>
+          <div>
+            <label for="male" class="mr-4">
+              <input type="radio" id="male" name="sex" value="male" class="mr-2" required>
+              Male
+            </label>
+            <label for="female" class="mr-4">
+              <input type="radio" id="female" name="sex" value="female" class="mr-2" required>
+              Female
+            </label>
+          </div>
+        </div>
 
         <!-- Phone Number -->
         <div class="mb-4">
           <label for="worker-phone" class="block text-gray-700 font-semibold mb-2">Phone Number:</label>
           <input type="text" id="worker-phone" name="phone_number" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Birth Date -->
+        <div class="mb-4">
+          <label for="worker-birth" class="block text-gray-700 font-semibold mb-2">Birth Date:</label>
+          <input type="date" id="worker-birth" name="birth_date" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Address -->
+        <div class="mb-4">
+          <label for="worker-address" class="block text-gray-700 font-semibold mb-2">Address:</label>
+          <textarea id="worker-address" name="address" class="w-full p-2 border border-gray-300 rounded-md" rows="3" required></textarea>
         </div>
 
         <!-- Bank Name -->

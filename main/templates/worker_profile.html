@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worker Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-8">
+  <h2 class="text-xl font-semibold mb-4">Worker</h2>
+  <div class="flex gap-8">
+    <!-- Display Information -->
+    <div class="relative w-1/2 p-4 border rounded shadow-md">
+      <!-- Image in the top-right corner -->
+      <img 
+        src="https://via.placeholder.com/80" 
+        alt="Profile Picture" 
+        class="absolute top-4 right-4 w-20 h-20 rounded-full border border-gray-300 object-cover"
+      />
+      
+      <!-- User Information -->
+      <p><span class="font-semibold">Name:</span> Jane Smith</p>
+      <p><span class="font-semibold">Sex:</span> F</p>
+      <p><span class="font-semibold">Phone Number:</span> 0987654321</p>
+      <p><span class="font-semibold">Birth Date:</span> 1985-05-10</p>
+      <p><span class="font-semibold">Address:</span> 456 Market St</p>
+      <p><span class="font-semibold">MyPay Balance:</span> $200</p>
+      <p><span class="font-semibold">Bank Name:</span> XYZ Bank</p>
+      <p><span class="font-semibold">Account Number:</span> 12345678</p>
+      <p><span class="font-semibold">NPWP:</span> 87654321</p>
+      <p><span class="font-semibold">Rate:</span> $50/hr</p>
+      <p><span class="font-semibold">Completed Orders Count:</span> 25</p>
+      <p><span class="font-semibold">Job Category:</span></p>
+      <ul class="list-disc ml-5">
+        <li>Job Category 1</li>
+        <li>Job Category 2</li>
+      </ul>
+      <button id="showWorkerForm" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+        Update
+      </button>
+    </div>
+  </div>
+
+    <!-- Update Form -->
+    <div id="workerForm" class="w-1/2 p-4 border rounded shadow-md hidden">
+      <form class="space-y-4">
+        <div>
+          <label class="block font-semibold">Name:</label>
+          <input type="text" class="w-full p-2 border rounded" placeholder="Jane Smith" />
+        </div>
+        <div>
+          <label class="block font-semibold">Password:</label>
+          <input type="password" class="w-full p-2 border rounded" placeholder="******" />
+        </div>
+        <div>
+          <label class="block font-semibold">Sex:</label>
+          <div class="flex items-center space-x-4">
+            <label><input type="radio" name="sex" value="F" /> F</label>
+            <label><input type="radio" name="sex" value="M" /> M</label>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold">Phone Number:</label>
+          <input type="text" class="w-full p-2 border rounded" placeholder="0987654321" />
+        </div>
+        <div>
+          <label class="block font-semibold">Birth Date:</label>
+          <input type="date" class="w-full p-2 border rounded" />
+        </div>
+        <div>
+          <label class="block font-semibold">Address:</label>
+          <input type="text" class="w-full p-2 border rounded" placeholder="456 Market St" />
+        </div>
+        <div>
+          <label class="block font-semibold">Bank Name:</label>
+          <select class="w-full p-2 border rounded">
+            <option>GoPay</option>
+            <option>OVO</option>
+            <option>Virtual Account BCA</option>
+            <option>Virtual Account BNI</option>
+            <option>Virtual Account MANDIRI</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold">Account Number:</label>
+          <input type="text" class="w-full p-2 border rounded" placeholder="12345678" />
+        </div>
+        <div>
+          <label class="block font-semibold">NPWP:</label>
+          <input type="text" class="w-full p-2 border rounded" placeholder="87654321" />
+        </div>
+        <div>
+          <label class="block font-semibold">Image URL:</label>
+          <input type="url" class="w-full p-2 border rounded" placeholder="http://example.com/image.jpg" />
+        </div>
+        <button class="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Register</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("showWorkerForm").addEventListener("click", function () {
+      document.getElementById("workerForm").classList.toggle("hidden");
+    });
+  </script>
+</body>
+</html>
