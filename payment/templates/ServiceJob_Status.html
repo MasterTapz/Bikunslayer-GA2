@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Job Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h3 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-section label {
+            margin-right: 10px;
+        }
+
+        .form-section input, .form-section select, .form-section button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .service-list {
+            margin-top: 20px;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .service-item span {
+            flex: 1;
+        }
+
+        .service-item button {
+            padding: 5px 10px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .service-item button:hover {
+            background-color: #0056b3;
+        }
+
+        .status-completed {
+            background-color: #28a745;
+            color: white;
+            cursor: default;
+        }
+
+        .status-completed:hover {
+            background-color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Service Job Status</h3>
+
+        <!-- Filter Section -->
+        <div class="form-section">
+            <label for="filterName">Service Name:</label>
+            <input type="text" id="filterName" placeholder="Enter Service Name">
+
+            <label for="filterStatus">Service Status:</label>
+            <select id="filterStatus">
+                <option value="">All</option>
+                <option value="waiting">Waiting for Worker to Depart</option>
+                <option value="arrived">Worker Arrived at Location</option>
+                <option value="in_progress">Service in Progress</option>
+                <option value="completed">Order Completed</option>
+            </select>
+
+            <button onclick="filterOrders()">Search</button>
+        </div>
+
+        <!-- Service List -->
+        <div class="service-list" id="serviceList">
+            <!-- Service items will be dynamically rendered here -->
+        </div>
+    </div>
+
+    <script>
+        // Mock Data
+        const orders = [
+            { id: 1, name: "Daily Cleaning", user: "User 1", status: "waiting", orderDate: "2024-11-17", workingDate: "2024-11-18", session: "Morning", totalAmount: 50 },
+            { id: 2, name: "Kitchen Cleaning", user: "User 2", status: "arrived", orderDate: "2024-11-16", workingDate: "2024-11-19", session: "Afternoon", totalAmount: 75 },
+            { id: 3, name: "Full Body Massage", user: "User 3", status: "in_progress", orderDate: "2024-11-15", workingDate: "2024-11-20", session: "Evening", totalAmount: 100 },
+        ];
+
+        function renderOrders(filteredOrders = orders) {
+            const serviceList = document.getElementById('serviceList');
+            serviceList.innerHTML = '';
+
+            filteredOrders.forEach(order => {
+                let button = '';
+
+                switch (order.status) {
+                    case 'waiting':
+                        button = `<button onclick="updateStatus(${order.id}, 'arrived')">Arrived at Location</button>`;
+                        break;
+                    case 'arrived':
+                        button = `<button onclick="updateStatus(${order.id}, 'in_progress')">Providing Service</button>`;
+                        break;
+                    case 'in_progress':
+                        button = `<button onclick="updateStatus(${order.id}, 'completed')" class="status-completed">Service Completed</button>`;
+                        break;
+                    case 'completed':
+                        button = `<button class="status-completed" disabled>Completed</button>`;
+                        break;
+                }
+
+                serviceList.innerHTML += `
+                    <div class="service-item">
+                        <span>
+                            <strong>Subcategory:</strong> ${order.name} | 
+                            <strong>User:</strong> ${order.user} | 
+                            <strong>Total:</strong> $${order.totalAmount} | 
+                            <strong>Order Date:</strong> ${order.orderDate} | 
+                            <strong>Working Date:</strong> ${order.workingDate} | 
+                            <strong>Session:</strong> ${order.session}
+                        </span>
+                        ${button}
+                    </div>`;
+            });
+        }
+
+        function updateStatus(orderId, newStatus) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = newStatus;
+                renderOrders();
+            }
+        }
+
+        function filterOrders() {
+            const filterName = document.getElementById('filterName').value.toLowerCase();
+            const filterStatus = document.getElementById('filterStatus').value;
+
+            const filteredOrders = orders.filter(order =>
+                (filterName ? order.name.toLowerCase().includes(filterName) : true) &&
+                (filterStatus ? order.status === filterStatus : true)
+            );
+
+            renderOrders(filteredOrders);
+        }
+
+        // Initial Render
+        renderOrders();
+    </script>
+</body>
+</html>

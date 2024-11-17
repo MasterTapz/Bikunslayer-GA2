@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Transaction Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h3 {
+            text-align: center;
+        }
+
+        .form-section {
+            margin-top: 20px;
+        }
+
+        .form-section label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .form-section input, 
+        .form-section select, 
+        .form-section button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .form-actions {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Transaction Form</h3>
+        <div class="form-section">
+            <label for="transactionType">Transaction Type:</label>
+            <select id="transactionType" onchange="switchForm()">
+                <option value="">-- Select Transaction --</option>
+                <option value="topup">TopUp</option>
+                <option value="service">Service Payment</option>
+                <option value="transfer">Transfer</option>
+                <option value="withdrawal">Withdrawal</option>
+            </select>
+        </div>
+
+        <!-- State 1: TopUp -->
+        <div id="topupForm" class="form-section hidden">
+            <label for="topUpAmount">Amount:</label>
+            <input type="number" id="topUpAmount" placeholder="Enter amount to top up">
+            <button>Top Up</button>
+        </div>
+
+        <!-- State 2: Service Payment -->
+        <div id="serviceForm" class="form-section hidden">
+            <label for="serviceSession">Service Session:</label>
+            <select id="serviceSession">
+                <option value="service1">Service 1</option>
+                <option value="service2">Service 2</option>
+                <option value="service3">Service 3</option>
+            </select>
+            <label for="servicePrice">Service Price:</label>
+            <input type="text" id="servicePrice" value="$100" disabled>
+            <button>Purchase</button>
+        </div>
+
+        <!-- State 3: Transfer -->
+        <div id="transferForm" class="form-section hidden">
+            <label for="recipientPhone">Recipient's Phone Number:</label>
+            <input type="text" id="recipientPhone" placeholder="Enter recipient's phone number">
+            <label for="transferAmount">Amount:</label>
+            <input type="number" id="transferAmount" placeholder="Enter transfer amount">
+            <button>Purchase</button>
+        </div>
+
+        <!-- State 4: Withdrawal -->
+        <div id="withdrawalForm" class="form-section hidden">
+            <label for="bankName">Bank Name:</label>
+            <select id="bankName">
+                <option value="gopay">GoPay</option>
+                <option value="ovo">OVO</option>
+                <option value="bca">Virtual Account BCA</option>
+                <option value="bni">BNI</option>
+                <option value="mandiri">Mandiri</option>
+            </select>
+            <label for="bankAccount">Account Number:</label>
+            <input type="text" id="bankAccount" placeholder="Enter bank account number">
+            <label for="withdrawalAmount">Amount:</label>
+            <input type="number" id="withdrawalAmount" placeholder="Enter withdrawal amount">
+            <button>Purchase</button>
+        </div>
+    </div>
+
+    <script>
+        function switchForm() {
+            // Hide all forms
+            document.getElementById('topupForm').classList.add('hidden');
+            document.getElementById('serviceForm').classList.add('hidden');
+            document.getElementById('transferForm').classList.add('hidden');
+            document.getElementById('withdrawalForm').classList.add('hidden');
+
+            // Show selected form
+            const selectedType = document.getElementById('transactionType').value;
+            if (selectedType === 'topup') {
+                document.getElementById('topupForm').classList.remove('hidden');
+            } else if (selectedType === 'service') {
+                document.getElementById('serviceForm').classList.remove('hidden');
+            } else if (selectedType === 'transfer') {
+                document.getElementById('transferForm').classList.remove('hidden');
+            } else if (selectedType === 'withdrawal') {
+                document.getElementById('withdrawalForm').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

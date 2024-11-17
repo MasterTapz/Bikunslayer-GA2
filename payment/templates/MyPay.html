@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyPay Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 600px;
+            background: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f4f4f4;
+        }
+
+        .header div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .balance {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .transaction-history {
+            padding: 20px;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-item span {
+            font-size: 0.9em;
+        }
+
+        .button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        #transactionForm {
+            display: none;
+            padding: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+
+        input, select, button {
+            margin-top: 5px;
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div>
+            <span>Phone Number: <strong>+123456789</strong></span>
+            <span class="balance">Balance: $<span id="balance">1000</span></span>
+        </div>
+        <button class="button" onclick="openTransactionForm()">Transact</button>
+    </div>
+
+    <div class="transaction-history">
+        <h3>Transaction History</h3>
+        <div id="transactionList"></div>
+    </div>
+</div>
+
+<div id="transactionForm">
+    <h3>Create Transaction</h3>
+    <label for="transactionAmount">Amount:</label>
+    <input type="number" id="transactionAmount">
+    <label for="transactionType">Type:</label>
+    <select id="transactionType">
+        <option value="Deposit">Deposit</option>
+        <option value="Withdrawal">Withdrawal</option>
+    </select>
+    <button class="button" onclick="createTransaction()">Submit</button>
+    <button class="button" style="background-color: #dc3545;" onclick="closeTransactionForm()">Cancel</button>
+</div>
+
+<script>
+    const transactions = [];
+
+    function openTransactionForm() {
+        document.getElementById('transactionForm').style.display = 'block';
+    }
+
+    function closeTransactionForm() {
+        document.getElementById('transactionForm').style.display = 'none';
+    }
+
+    function createTransaction() {
+        const amount = parseFloat(document.getElementById('transactionAmount').value);
+        const type = document.getElementById('transactionType').value;
+        const balanceElement = document.getElementById('balance');
+        let balance = parseFloat(balanceElement.textContent);
+
+        if (type === "Deposit") {
+            balance += amount;
+        } else if (type === "Withdrawal" && balance >= amount) {
+            balance -= amount;
+        } else {
+            alert("Insufficient balance");
+            return;
+        }
+
+        balanceElement.textContent = balance;
+        transactions.push({ amount, type, date: new Date().toLocaleDateString() });
+        updateTransactionHistory();
+        closeTransactionForm();
+    }
+
+    function updateTransactionHistory() {
+        const transactionList = document.getElementById('transactionList');
+        transactionList.innerHTML = '';
+        transactions.forEach(t => {
+            transactionList.innerHTML += `
+                <div class="transaction-item">
+                    <span>${t.type}: $${t.amount}</span>
+                    <span>Date: ${t.date}</span>
+                </div>`;
+        });
+    }
+</script>
+
+</body>
+</html>

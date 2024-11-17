@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Job</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h3 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-section label {
+            margin-right: 10px;
+        }
+
+        .form-section select,
+        .form-section button {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .service-list {
+            margin-top: 20px;
+        }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .service-item span {
+            flex: 1;
+        }
+
+        .service-item button {
+            padding: 5px 10px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .service-item button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>Service Orders</h3>
+        <div class="form-section">
+            <label for="serviceCategory">Category:</label>
+            <select id="serviceCategory" onchange="populateSubcategories()">
+                <option value="">-- Select Category --</option>
+                <option value="home_cleaning">Home Cleaning</option>
+                <option value="massage">Massage</option>
+            </select>
+
+            <label for="serviceSubcategory">Subcategory:</label>
+            <select id="serviceSubcategory">
+                <option value="">-- Select Subcategory --</option>
+            </select>
+
+            <button onclick="filterOrders()">Search</button>
+        </div>
+
+        <div class="service-list" id="serviceList">
+            <!-- Orders will be dynamically rendered here -->
+        </div>
+    </div>
+
+    <script>
+        const orders = [
+            { id: 1, category: "home_cleaning", subcategory: "Daily Cleaning", user: "User 1", status: "Looking for Nearby Worker", orderDate: "2024-11-17", workingDate: "2024-11-18", session: "Morning", totalAmount: 50 },
+            { id: 2, category: "home_cleaning", subcategory: "Kitchen Cleaning", user: "User 2", status: "Looking for Nearby Worker", orderDate: "2024-11-16", workingDate: "2024-11-19", session: "Afternoon", totalAmount: 75 },
+            { id: 3, category: "massage", subcategory: "Full Body Massage", user: "User 3", status: "Looking for Nearby Worker", orderDate: "2024-11-15", workingDate: "2024-11-20", session: "Evening", totalAmount: 100 },
+        ];
+
+        const subcategories = {
+            home_cleaning: ["Daily Cleaning", "Kitchen Cleaning", "Deep Cleaning"],
+            massage: ["Full Body Massage", "Head Massage", "Foot Massage"]
+        };
+
+        function populateSubcategories() {
+            const category = document.getElementById('serviceCategory').value;
+            const subcategoryDropdown = document.getElementById('serviceSubcategory');
+            subcategoryDropdown.innerHTML = '<option value="">-- Select Subcategory --</option>';
+            if (subcategories[category]) {
+                subcategories[category].forEach(sub => {
+                    subcategoryDropdown.innerHTML += `<option value="${sub}">${sub}</option>`;
+                });
+            }
+        }
+
+        function filterOrders() {
+            const category = document.getElementById('serviceCategory').value;
+            const subcategory = document.getElementById('serviceSubcategory').value;
+            const serviceList = document.getElementById('serviceList');
+            serviceList.innerHTML = '';
+
+            const filteredOrders = orders.filter(order => 
+                (category ? order.category === category : true) &&
+                (subcategory ? order.subcategory === subcategory : true) &&
+                order.status === "Looking for Nearby Worker"
+            );
+
+            if (filteredOrders.length > 0) {
+                filteredOrders.forEach(order => {
+                    serviceList.innerHTML += `
+                        <div class="service-item">
+                            <span>Subcategory: ${order.subcategory} | User: ${order.user} | Total: $${order.totalAmount} | Order Date: ${order.orderDate} | Working Date: ${order.workingDate} | Session: ${order.session}</span>
+                            <button onclick="acceptOrder(${order.id})">Accept Order</button>
+                        </div>`;
+                });
+            } else {
+                serviceList.innerHTML = '<p>No orders found.</p>';
+            }
+        }
+
+        function acceptOrder(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.status = "Waiting for Nearby Worker";
+                alert(`Order for ${order.subcategory} accepted!`);
+                filterOrders();
+            }
+        }
+    </script>
+</body>
+</html>
