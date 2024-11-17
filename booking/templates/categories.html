@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Categories</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold">Service Categories</h1>
+            <div class="flex space-x-4">
+                <select class="border rounded-md p-2" id="category-filter">
+                    <option value="">All Categories</option>
+                    <!-- Populate dynamically -->
+                </select>
+                <input type="text" class="border rounded-md p-2 w-64" placeholder="Search Subcategories" id="subcategory-search">
+                <button class="bg-blue-500 text-white rounded-md px-4 py-2">Search</button>
+            </div>
+        </div>
+
+        <!-- Categories List -->
+        {% for category in categories %}
+        <div class="mb-6">
+            <h2 class="text-lg font-semibold bg-gray-200 rounded-md px-4 py-2">{{ category.name }}</h2>
+            <div class="bg-white shadow-md rounded-md">
+                {% for subcategory in category.subcategories.all %}
+                <a href="{% url 'subcategory_detail' subcategory.id %}" class="block px-4 py-2 border-b hover:bg-gray-100">
+                    {{ subcategory.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
