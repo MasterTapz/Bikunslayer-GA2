@@ -7,6 +7,10 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="p-8">
+  
+  <!-- Include Navbar -->
+  {% include 'worker_navbar.html' %}
+
   <h2 class="text-xl font-semibold mb-4">Worker</h2>
   <div class="flex gap-8">
     <!-- Display Information -->
@@ -19,7 +23,7 @@
       />
       
       <!-- User Information -->
-      <p><span class="font-semibold">Name:</span> Jane Smith</p>
+      <p><span class="font-semibold">Name:</span> AHMED</p>
       <p><span class="font-semibold">Sex:</span> F</p>
       <p><span class="font-semibold">Phone Number:</span> 0987654321</p>
       <p><span class="font-semibold">Birth Date:</span> 1985-05-10</p>
@@ -46,7 +50,7 @@
       <form class="space-y-4">
         <div>
           <label class="block font-semibold">Name:</label>
-          <input type="text" class="w-full p-2 border rounded" placeholder="Jane Smith" />
+          <input type="text" class="w-full p-2 border rounded" placeholder="AHMED" />
         </div>
         <div>
           <label class="block font-semibold">Password:</label>
@@ -93,7 +97,7 @@
           <label class="block font-semibold">Image URL:</label>
           <input type="url" class="w-full p-2 border rounded" placeholder="http://example.com/image.jpg" />
         </div>
-        <button class="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Register</button>
+        <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-green-600">Register</button>
       </form>
     </div>
   </div>

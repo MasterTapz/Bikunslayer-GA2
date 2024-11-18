@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
+  {% include 'guest_navbar.html' %}
 
   <div class="min-h-screen flex flex-col justify-center items-center bg-white">
     <h2 class="text-2xl font-bold mb-6">Login</h2>
@@ -36,7 +37,7 @@
       </button>
     </form>
     <p class="mt-4">
-      Don't have an account? <a href="register.html" class="text-blue-600 hover:underline">Register</a>
+      Don't have an account? <a href="{% url 'register' %}" class="text-blue-600 hover:underline">Register</a>
     </p>
   </div>
 

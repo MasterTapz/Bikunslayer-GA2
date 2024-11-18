@@ -1,4 +1,6 @@
-<head>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIJARTA</title>
@@ -14,15 +16,15 @@
       </h1>
       <div class="flex space-x-6">
         <!-- Login Box -->
-        <a href="login.html" class="w-40 h-40 bg-blue-600 text-white flex flex-col justify-center items-center rounded-lg shadow-lg hover:bg-blue-700 transition">
+        <a href="{% url 'login' %}" class="w-40 h-40 bg-blue-600 text-white flex flex-col justify-center items-center rounded-lg shadow-lg hover:bg-blue-700 transition">
           <span class="text-xl font-bold">Login</span>
         </a>
         <!-- Register Box -->
-        <a href="register.html" class="w-40 h-40 bg-green-600 text-white flex flex-col justify-center items-center rounded-lg shadow-lg hover:bg-green-700 transition">
+        <a href="{% url 'register' %}" class="w-40 h-40 bg-green-600 text-white flex flex-col justify-center items-center rounded-lg shadow-lg hover:bg-green-700 transition">
           <span class="text-xl font-bold">Register</span>
         </a>
       </div>
     </div>
   
   </body>
-  {% endblock content %}
+</html>

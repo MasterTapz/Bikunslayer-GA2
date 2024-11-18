@@ -1,21 +1,62 @@
-<nav class="bg-gray-800 p-4">
-    <div class="max-w-7xl mx-auto flex justify-between items-center">
-      <div class="text-white text-2xl font-semibold">Logo</div>
-      <div class="space-x-6 hidden md:flex">
-        <span class="text-white">User</span>
-        <a href="/homepage" class="text-white hover:text-gray-400">Homepage</a>
-        <a href="/mypay" class="text-white hover:text-gray-400">MyPay</a>
-        <a href="/my-orders" class="text-white hover:text-gray-400">My Order</a>
-        <a href="/discount" class="text-white hover:text-gray-400">Discount</a>
-        <a href="user_profile" class="text-white hover:text-gray-400">Profile</a>
-        <a href="/logout" class="text-white hover:text-gray-400">Logout</a>
-      </div>
-   
-  <script>
-    const menuBtn = document.getElementById('mobile-menu-btn');
-    const menu = document.getElementById('mobile-menu');
-    menuBtn.addEventListener('click', () => {
-      menu.classList.toggle('hidden');
-    });
-  </script>
-  
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navbar Layout</title>
+  <style>
+    /* General Styles */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+    }
+
+    /* Navbar Styles */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #692828;
+      color: white;
+      padding: 10px 20px;
+    }
+
+    .user-info p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="user-info">
+      <p>Role: User</p>
+      <p>Name: BRIAN SUBEKTI</p>
+    </div>
+    <nav class="nav-links">
+      <a href="{% url 'main' %}">Homepage</a>
+      <a href="#">MyPay</a>
+      <a href="#">My Order (View Service Booking)</a>
+      <a href="#">Discount</a>
+      <a href="#">Profile</a>
+      <a href="#">Logout</a>
+    </nav>
+  </header>
+</body>
+</html>
