@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Worker Registration</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+  {% include 'guest_navbar.html' %}
+
+  <div class="flex justify-center items-center min-h-screen">
+    <div class="bg-white shadow-md rounded-lg p-8 w-full max-w-xl">
+      <h1 class="text-2xl font-bold mb-6 text-center">Worker Registration</h1>
+
+      <!-- Form -->
+      <form action="{% url 'register_worker' %}" method="POST">
+        {% csrf_token %}
+        
+        <!-- Name -->
+        <div class="mb-4">
+          <label for="name" class="block text-gray-700 font-semibold mb-2">Name:</label>
+          <input type="text" id="name" name="name" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Password -->
+        <div class="mb-4">
+          <label for="password" class="block text-gray-700 font-semibold mb-2">Password:</label>
+          <input type="password" id="password" name="password" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Sex -->
+        <div class="mb-4">
+          <label class="block text-gray-700 font-semibold mb-2">Sex:</label>
+          <div>
+            <label for="male" class="mr-4">
+              <input type="radio" id="male" name="sex" value="M" class="mr-2" required>
+              Male
+            </label>
+            <label for="female" class="mr-4">
+              <input type="radio" id="female" name="sex" value="F" class="mr-2" required>
+              Female
+            </label>
+          </div>
+        </div>
+
+        <!-- Phone Number -->
+        <div class="mb-4">
+          <label for="phone_number" class="block text-gray-700 font-semibold mb-2">Phone Number:</label>
+          <input type="text" id="phone_number" name="phone_number" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Birth Date -->
+        <div class="mb-4">
+          <label for="birthdate" class="block text-gray-700 font-semibold mb-2">Birth Date:</label>
+          <input type="date" id="birthdate" name="birthdate" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Address -->
+        <div class="mb-4">
+          <label for="address" class="block text-gray-700 font-semibold mb-2">Address:</label>
+          <textarea id="address" name="address" class="w-full p-2 border border-gray-300 rounded-md" rows="3" required></textarea>
+        </div>
+
+        <!-- Bank Name -->
+        <div class="mb-4">
+          <label for="bank_name" class="block text-gray-700 font-semibold mb-2">Bank Name:</label>
+          <select id="bank_name" name="bank_name" class="w-full p-2 border border-gray-300 rounded-md" required>
+            <option value="GoPay">GoPay</option>
+            <option value="OVO">OVO</option>
+            <option value="Virtual Account BCA">Virtual Account BCA</option>
+            <option value="Virtual Account BNI">Virtual Account BNI</option>
+            <option value="Virtual Account Mandiri">Virtual Account Mandiri</option>
+          </select>
+        </div>
+
+        <!-- Account Number -->
+        <div class="mb-4">
+          <label for="account_number" class="block text-gray-700 font-semibold mb-2">Account Number:</label>
+          <input type="text" id="account_number" name="account_number" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- NPWP -->
+        <div class="mb-4">
+          <label for="npwp" class="block text-gray-700 font-semibold mb-2">NPWP:</label>
+          <input type="text" id="npwp" name="npwp" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Image URL -->
+        <div class="mb-4">
+          <label for="pic_url" class="block text-gray-700 font-semibold mb-2">Image URL:</label>
+          <input type="url" id="pic_url" name="pic_url" class="w-full p-2 border border-gray-300 rounded-md" required>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">Register</button>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

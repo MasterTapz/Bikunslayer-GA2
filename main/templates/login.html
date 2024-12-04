@@ -9,15 +9,16 @@
 <body class="bg-gray-100 font-sans">
   {% include 'guest_navbar.html' %}
 
-  <div class="min-h-screen flex flex-col justify-center items-center bg-white">
+  <div class="min-h-screen flex flex-col justify-center items-center bg-gray-100">
     <h2 class="text-2xl font-bold mb-6">Login</h2>
-    <form action="/login" method="POST" class="w-full max-w-md bg-gray-50 p-6 rounded-md shadow-lg">
+    <form action="{% url 'login' %}" method="POST" class="w-full max-w-md bg-white p-6 rounded-md shadow-lg">
+      {% csrf_token %}
       <div class="mb-4">
         <label for="phone-number" class="block text-gray-700 font-semibold mb-2">Phone Number:</label>
         <input 
           type="text" 
           id="phone-number" 
-          name="phone-number" 
+          name="phone_number" 
           class="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300" 
           required>
       </div>
