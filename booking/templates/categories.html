@@ -7,12 +7,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
+    {% if request.session.user_role == "worker" %}
+        {% include "worker_navbar.html" %}
+    {% elif request.session.user_role == "user" %}
+        {% include "user_navbar.html" %}
+    {% else %}
+        <!-- Default or guest navbar -->
+        {% include "guest_navbar.html" %}
+    {% endif %}
     <div class="container mx-auto px-4 py-8">
         <!-- Header Section -->
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-2xl font-bold">Service Categories</h1>
             <div class="flex space-x-4">
-                <!-- Category Filter -->
+                <!-- Category Filter -->            
                 <select class="border rounded-md p-2">
                     <option value="">All Categories</option>
                     {% for category in categories %}

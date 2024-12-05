@@ -3,7 +3,7 @@ from .views import check_all_ids, check_database_connection, join_subcategory, l
 
 urlpatterns = [
     path('check-db/', check_database_connection),
-    path('categories/', view_categories),
+    path('categories/', view_categories, name='view_categories'),
     path('subcategory/<uuid:subcategory_id>/', view_subcategory_detail, name='subcategory_detail'),
     path('subcategory/<uuid:subcategory_id>/worker/<uuid:worker_id>/', view_subcategory_detail_worker, name='subcategory_detail_worker'),
     path('check_ids/', check_all_ids, name='check_ids'),
