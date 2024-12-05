@@ -46,16 +46,18 @@
 <body>
   <header class="navbar">
     <div class="user-info">
+      <!-- Display the role and name dynamically using Django template variables -->
       <p>Role: User</p>
-      <p>Name: BRIAN SUBEKTI</p>
+      <p>Name: {{ request.session.user_name }}</p>
     </div>
     <nav class="nav-links">
+      <!-- Dynamic links to existing views -->
       <a href="{% url 'main' %}">Homepage</a>
-      <a href="#">MyPay</a>
-      <a href="#">My Order (View Service Booking)</a>
-      <a href="#">Discount</a>
-      <a href="#">Profile</a>
-      <a href="#">Logout</a>
+      <a href="#">MyPay</a> <!-- Update when MyPay view is implemented -->
+      <a href="#">My Order</a> <!-- Update when My Order view is implemented -->
+      <a href="#">Discount</a> <!-- Update when Discount view is implemented -->
+      <a href="{% url 'user_profile' %}">Profile</a>
+      <a href="{% url 'logout' %}">Logout</a>
     </nav>
   </header>
 </body>
