@@ -131,21 +131,30 @@ def login(request):
         with connection.cursor() as cursor:
             # Check for matching user in the database
             cursor.execute("""
-                SELECT Id, Name, Pwd 
-                FROM users 
+                SELECT u.Id, u.Name, u.Pwd, 
+                       CASE 
+                           WHEN EXISTS (SELECT 1 FROM worker WHERE worker.Id = u.Id) THEN 'worker'
+                           ELSE 'user' 
+                       END AS role
+                FROM users u
                 WHERE PhoneNum = %s
             """, [phone_number])
             user = cursor.fetchone()
 
             if user:
-                user_id, user_name, stored_password = user
+                user_id, user_name, stored_password, user_role = user
 
                 # Check if the password matches
                 if password == stored_password:  # Replace with hashed password verification if needed
                     # Save session data (convert UUID to string)
                     request.session['user_id'] = str(user_id)
                     request.session['user_name'] = user_name
-                    return redirect('homepage')  # Redirect to the homepage after login
+                    request.session['user_role'] = user_role
+
+                    # Redirect to role-specific homepage
+                    if user_role == "worker":
+                        return redirect('worker_profile')
+                    return redirect('homepage')  # Redirect for user role
                 else:
                     messages.error(request, "Invalid password. Please try again.")
             else:
@@ -154,8 +163,6 @@ def login(request):
         return redirect('login')
 
     return render(request, 'login.html')  # Display login form
-
-
 
 def homepage(request):
     if 'user_id' not in request.session:
@@ -231,31 +238,35 @@ def worker_profile(request):
         bank_name = request.POST.get("bank_name")
         account_number = request.POST.get("account_number")
         npwp = request.POST.get("npwp")
+        pic_url = request.POST.get("pic_url")
 
-        if not all([name, phone_number, sex, birthdate, address, bank_name, account_number, npwp]):
+        if not all([name, phone_number, sex, birthdate, address, bank_name, account_number, npwp, pic_url]):
             messages.error(request, "All fields are required.")
             return redirect("worker_profile")
 
         with connection.cursor() as cursor:
+            # Update the `users` table
             cursor.execute("""
                 UPDATE users 
                 SET Name = %s, PhoneNum = %s, Sex = %s, DoB = %s, Address = %s 
                 WHERE Id = %s
             """, [name, phone_number, sex, birthdate, address, worker_id])
 
+            # Update the `worker` table
             cursor.execute("""
                 UPDATE worker 
-                SET BankName = %s, AccNumber = %s, NPWP = %s 
+                SET BankName = %s, AccNumber = %s, NPWP = %s, PicURL = %s 
                 WHERE Id = %s
-            """, [bank_name, account_number, npwp, worker_id])
+            """, [bank_name, account_number, npwp, pic_url, worker_id])
 
         messages.success(request, "Profile updated successfully.")
         return redirect("worker_profile")
 
     with connection.cursor() as cursor:
+        # Fetch the worker's profile data
         cursor.execute("""
             SELECT u.Name, u.PhoneNum, u.Sex, u.DoB, u.Address, u.MyPayBalance, 
-                   w.BankName, w.AccNumber, w.NPWP, w.Rate, w.TotalFinishOrder 
+                   w.BankName, w.AccNumber, w.NPWP, w.Rate, w.TotalFinishOrder, w.PicURL 
             FROM users u 
             JOIN worker w ON u.Id = w.Id 
             WHERE u.Id = %s
@@ -274,6 +285,7 @@ def worker_profile(request):
         "npwp": worker_data[8],
         "rate": worker_data[9],
         "total_finish_order": worker_data[10],
+        "pic_url": worker_data[11],  # Add the pic_url to the profile data
     }
 
     return render(request, "worker_profile.html", {"profile": profile_data})

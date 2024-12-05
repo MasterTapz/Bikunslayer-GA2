@@ -11,12 +11,13 @@
   <!-- Include Navbar -->
   {% include 'worker_navbar.html' %}
 
-  <h2 class="text-xl font-semibold mb-4">Worker</h2>
+  <h2 class="text-xl font-semibold mb-4">Worker Profile</h2>
   <div class="flex gap-8">
     <!-- Display Information -->
     <div class="relative w-1/2 p-4 border rounded shadow-md">
+      <!-- Dynamically Display Worker Profile Picture -->
       <img 
-        src="https://via.placeholder.com/80" 
+        src="{{ profile.pic_url|default:'https://via.placeholder.com/80' }}" 
         alt="Profile Picture" 
         class="absolute top-4 right-4 w-20 h-20 rounded-full border border-gray-300 object-cover"
       />
@@ -46,10 +47,14 @@
         <input type="text" name="name" class="w-full p-2 border rounded" value="{{ profile.name }}" />
       </div>
       <div>
+        <label class="block font-semibold">Password:</label>
+        <input type="password" name="password" class="w-full p-2 border rounded" />
+      </div>
+      <div>
         <label class="block font-semibold">Sex:</label>
         <div class="flex items-center space-x-4">
-          <label><input type="radio" name="sex" value="M" {% if profile.sex == 'M' %}checked{% endif %} /> M</label>
-          <label><input type="radio" name="sex" value="F" {% if profile.sex == 'F' %}checked{% endif %} /> F</label>
+          <label><input type="radio" name="sex" value="M" {% if profile.sex == 'M' %}checked{% endif %} /> Male</label>
+          <label><input type="radio" name="sex" value="F" {% if profile.sex == 'F' %}checked{% endif %} /> Female</label>
         </div>
       </div>
       <div>
@@ -57,8 +62,22 @@
         <input type="text" name="phone_number" class="w-full p-2 border rounded" value="{{ profile.phone_number }}" />
       </div>
       <div>
+        <label class="block font-semibold">Birth Date:</label>
+        <input type="date" name="birthdate" class="w-full p-2 border rounded" value="{{ profile.birthdate }}" />
+      </div>
+      <div>
+        <label class="block font-semibold">Address:</label>
+        <textarea name="address" class="w-full p-2 border rounded" rows="3">{{ profile.address }}</textarea>
+      </div>
+      <div>
         <label class="block font-semibold">Bank Name:</label>
-        <input type="text" name="bank_name" class="w-full p-2 border rounded" value="{{ profile.bank_name }}" />
+        <select name="bank_name" class="w-full p-2 border rounded">
+          <option value="GoPay" {% if profile.bank_name == 'GoPay' %}selected{% endif %}>GoPay</option>
+          <option value="OVO" {% if profile.bank_name == 'OVO' %}selected{% endif %}>OVO</option>
+          <option value="Virtual Account BCA" {% if profile.bank_name == 'Virtual Account BCA' %}selected{% endif %}>Virtual Account BCA</option>
+          <option value="Virtual Account BNI" {% if profile.bank_name == 'Virtual Account BNI' %}selected{% endif %}>Virtual Account BNI</option>
+          <option value="Virtual Account Mandiri" {% if profile.bank_name == 'Virtual Account Mandiri' %}selected{% endif %}>Virtual Account Mandiri</option>
+        </select>
       </div>
       <div>
         <label class="block font-semibold">Account Number:</label>
@@ -68,7 +87,13 @@
         <label class="block font-semibold">NPWP:</label>
         <input type="text" name="npwp" class="w-full p-2 border rounded" value="{{ profile.npwp }}" />
       </div>
-      <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-green-600">Submit</button>
+      <div>
+        <label class="block font-semibold">Image URL:</label>
+        <input type="text" name="pic_url" class="w-full p-2 border rounded" value="{{ profile.pic_url }}" />
+      </div>
+      <div>
+        <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-green-600">Submit</button>
+      </div>
     </form>
   </div>
 
