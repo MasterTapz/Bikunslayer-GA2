@@ -151,10 +151,7 @@ def login(request):
                     request.session['user_name'] = user_name
                     request.session['user_role'] = user_role
 
-                    # Redirect to role-specific homepage
-                    if user_role == "worker":
-                        return redirect('worker_profile')
-                    return redirect('homepage')  # Redirect for user role
+                    return redirect('view_categories')  # Redirect for user role
                 else:
                     messages.error(request, "Invalid password. Please try again.")
             else:
@@ -169,7 +166,7 @@ def homepage(request):
         return redirect('login')
 
     context = {'user_name': request.session.get('user_name')}
-    return render(request, 'brian.html', context)
+    return render(request, 'categories.html', context)
 
 
 def logout(request):
