@@ -15,9 +15,9 @@
                 <!-- Category Filter -->
                 <select class="border rounded-md p-2">
                     <option value="">All Categories</option>
-                    <option value="1">Category 1 </option>
-                    <option value="2">Category 2</option>
-                    <option value="3">Category 3</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}">{{ category.categoryname }}</option>
+                    {% endfor %}
                 </select>
                 <!-- Subcategory Search -->
                 <input type="text" class="border rounded-md p-2 w-64" placeholder="Search Subcategories">
@@ -26,35 +26,22 @@
         </div>
 
         <!-- Categories List -->
-        <div class="mb-6">
-            <!-- Category 1 -->
-            <h2 class="text-lg font-semibold bg-gray-200 rounded-md px-4 py-2">Service Category 1</h2>
+        {% for category in categories %}
+            <!-- Category -->
+            <h2 class="text-lg font-semibold bg-gray-200 rounded-md px-4 py-2">{{ category.categoryname }}</h2>
             <div class="bg-white shadow-md rounded-md">
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 1</a>
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 2</a>
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 3</a>
+                {% if category.subcategories %}
+                    {% for subcategory in category.subcategories %}
+                        <a href="{% url 'subcategory_detail' subcategory.id %}" class="block px-4 py-2 border-b hover:bg-gray-100">
+                            {{ subcategory.subcategoryname }}
+                            <p class="text-sm text-gray-500">{{ subcategory.description }}</p>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <p class="px-4 py-2 text-gray-500">No subcategories available.</p>
+                {% endif %}
             </div>
-        </div>
-
-        <div class="mb-6">
-            <!-- Category 2 -->
-            <h2 class="text-lg font-semibold bg-gray-200 rounded-md px-4 py-2">Service Category 2</h2>
-            <div class="bg-white shadow-md rounded-md">
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 1</a>
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 2</a>
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 3</a>
-            </div>
-        </div>
-
-        <div class="mb-6">
-            <!-- Category 3 -->
-            <h2 class="text-lg font-semibold bg-gray-200 rounded-md px-4 py-2">Service Category 3</h2>
-            <div class="bg-white shadow-md rounded-md">
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 1</a>
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 2</a>
-                <a href="#" class="block px-4 py-2 border-b hover:bg-gray-100">Subcategory 3</a>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 </body>
 </html>

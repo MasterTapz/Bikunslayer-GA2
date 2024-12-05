@@ -3,86 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subcategory Name - Worker</title>
+    <title>{{ subcategory.subcategoryname }} - {{ worker.workername }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8 bg-gray-50 rounded-md shadow-md">
+    <div class="container mx-auto px-4 py-8 bg-white shadow-md rounded-md">
 
         <!-- Header Section -->
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold">Subcategory Name</h1>
-            <h2 class="text-lg font-semibold bg-gray-200 px-4 py-2 rounded-md">Category Name</h2>
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-bold">{{ subcategory.subcategoryname }}</h1>
+            <h2 class="text-lg font-semibold bg-gray-200 px-4 py-2 rounded-md">
+                Worker: {{ worker.workername }}
+            </h2>
         </div>
 
         <!-- Description Section -->
         <div class="mb-8">
-            <p class="text-gray-600 bg-white p-4 rounded-md shadow">
-                DESC
+            <p class="text-gray-600 p-4 rounded-md border">
+                {{ subcategory.description }}
             </p>
         </div>
 
-        <!-- Service Session Option -->
+        <!-- Worker Join Status -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Join Status</h2>
+            <div class="bg-gray-50 shadow-md rounded-md px-4 py-4 text-center">
+                {% if is_joined %}
+                    <p class="text-green-500 font-semibold">You are currently joined in this subcategory.</p>
+                    <form method="POST" action="{% url 'leave_subcategory' subcategory.id worker.id %}">
+                        {% csrf_token %}
+                        <button class="bg-red-500 text-white rounded-md px-4 py-2 mt-4">Leave Subcategory</button>
+                    </form>
+                {% else %}
+                    <p class="text-gray-500 font-semibold">You have not joined this subcategory yet.</p>
+                    <form method="POST" action="{% url 'join_subcategory' subcategory.id worker.id %}">
+                        {% csrf_token %}
+                        <button class="bg-blue-500 text-white rounded-md px-4 py-2 mt-4">Join Subcategory</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Service Sessions -->
         <div class="mb-8">
             <h2 class="text-xl font-semibold mb-4">Service Session Option</h2>
             <div class="space-y-4">
-                <!-- Session 1 -->
-                <div class="flex justify-between items-center bg-white shadow-md rounded-md px-4 py-3">
-                    <div>
-                        <h3 class="text-lg font-semibold">Session 1</h3>
-                        <p class="text-gray-500">$100</p>
+                {% if sessions %}
+                    {% for session in sessions %}
+                    <div class="flex justify-between items-center bg-gray-50 shadow-md rounded-md px-4 py-3">
+                        <div>
+                            <h3 class="text-lg font-semibold">Session {{ session.session }}</h3>
+                            <p class="text-gray-500">${{ session.price }}</p>
+                        </div>
                     </div>
-                </div>
-                <!-- Session 2 -->
-                <div class="flex justify-between items-center bg-white shadow-md rounded-md px-4 py-3">
-                    <div>
-                        <h3 class="text-lg font-semibold">Session 2</h3>
-                        <p class="text-gray-500">$150</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Workers Section -->
-        <div class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Workers</h2>
-            <div class="grid grid-cols-4 gap-4">
-                <div class="bg-white shadow-md rounded-md p-4 text-center">
-                    <p class="font-semibold">Worker Name 1</p>
-                </div>
-                <div class="bg-white shadow-md rounded-md p-4 text-center">
-                    <p class="font-semibold">Worker Name 2</p>
-                </div>
-                <div class="bg-white shadow-md rounded-md p-4 text-center">
-                    <p class="font-semibold">Worker Name 3</p>
-                </div>
-                <div class="bg-white shadow-md rounded-md p-4 text-center">
-                    <p class="font-semibold">Worker Name 4</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Join Button -->
-        <div class="text-center mb-8">
-            <button class="bg-green-500 text-white rounded-md px-6 py-2">Join This Service</button>
-        </div>
-
-        <!-- Testimonials Section -->
-        <div>
-            <h2 class="text-xl font-semibold mb-4">Testimonials</h2>
-            <div class="space-y-4">
-                <!-- Testimonial 1 -->
-                <div class="bg-white shadow-md rounded-md p-4">
-                    <p class="font-semibold">User Name 1</p>
-                    <p class="text-gray-600">WOW</p>
-                    <p class="text-sm text-gray-500">Worker: Worker Name 1, Rating: 5</p>
-                </div>
-                <!-- Testimonial 2 -->
-                <div class="bg-white shadow-md rounded-md p-4">
-                    <p class="font-semibold">User Name 2</p>
-                    <p class="text-gray-600">COOL</p>
-                    <p class="text-sm text-gray-500">Worker: Worker Name 2, Rating: 4</p>
-                </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500">No service sessions available for this subcategory.</p>
+                {% endif %}
             </div>
         </div>
 
