@@ -6,17 +6,18 @@
   <title>User Profile</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="p-8">
-
-  <!-- Include Navbar -->
-  {% include 'user_navbar.html' %}
+<body class="bg-gray-100">
+  <!-- Fixed Navbar -->
+  <div class="fixed w-full bg-gray-800 text-white shadow-md z-10">
+    {% include 'user_navbar.html' %}
+  </div>
 
   <!-- User Profile Section -->
-  <main class="p-8">
-    <h2 class="text-xl font-semibold mb-4">User</h2>
+  <div class="pt-20 p-8">
+    <h2 class="text-xl font-semibold mb-4">User Profile</h2>
     <div class="space-y-8">
       <!-- Display Information -->
-      <div class="p-4 border rounded shadow-md">
+      <div class="p-4 border rounded shadow-md bg-white">
         <p><span class="font-semibold">Name:</span> {{ profile.name }}</p>
         <p><span class="font-semibold">Level:</span> Gold</p> <!-- Assuming user level is hardcoded -->
         <p><span class="font-semibold">Sex:</span> {{ profile.sex }}</p>
@@ -30,7 +31,7 @@
       </div>
 
       <!-- Update Form -->
-      <div id="userForm" class="p-4 border rounded shadow-md hidden">
+      <div id="userForm" class="p-4 border rounded shadow-md bg-white hidden">
         <form method="POST">
           {% csrf_token %}
           <div>
@@ -60,13 +61,12 @@
         </form>
       </div>
     </div>
-  </main>
+  </div>
 
   <script>
     document.getElementById("showUserForm").addEventListener("click", function () {
       document.getElementById("userForm").classList.toggle("hidden");
     });
   </script>
-
 </body>
 </html>
