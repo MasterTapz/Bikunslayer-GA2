@@ -10,6 +10,8 @@ urlpatterns = [
     path('subcategory/<uuid:subcategory_id>/worker/<uuid:worker_id>/join/', join_subcategory, name='join_subcategory'),
     path('subcategory/<uuid:subcategory_id>/worker/<uuid:worker_id>/leave/', leave_subcategory, name='leave_subcategory'),
     path('book-service/<uuid:subcategory_id>/<int:session>/', book_service, name='book_service'),
+    path('subcategory/<uuid:subcategory_id>/worker/<uuid:worker_id>/join/', join_subcategory, name='join_subcategory'),
+
 
 
 
