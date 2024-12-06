@@ -38,17 +38,29 @@ def register_user(request):
             messages.error(request, "Invalid value for sex. Please choose 'Male' or 'Female'.")
             return redirect("register_user")
 
-        # Insert user into the database
+        # Insert user and customer into the database
         with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO users (id, name, sex, phonenum, pwd, dob, address, mypaybalance)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, [str(user_id), name, sex, phone_number, password, birthdate, address, 0])
+            try:
+                # Insert into `users` table
+                cursor.execute("""
+                    INSERT INTO users (id, name, sex, phonenum, pwd, dob, address, mypaybalance)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, [str(user_id), name, sex, phone_number, password, birthdate, address, 0])
 
-        messages.success(request, "User registered successfully.")
-        return redirect("login")
+                # Insert into `customer` table
+                cursor.execute("""
+                    INSERT INTO customer (id, level)
+                    VALUES (%s, %s)
+                """, [str(user_id), 'Basic'])
+
+                messages.success(request, "User registered successfully.")
+                return redirect("login")
+            except Exception as e:
+                messages.error(request, f"Error: {e}")
+                return redirect("register_user")
 
     return render(request, "register_user.html")
+
 
 @csrf_exempt
 def register_worker(request):
@@ -114,8 +126,6 @@ def register_worker(request):
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, [worker_id, bank_name, account_number, npwp, pic_url, 0, 0])
 
-        # Confirm successful registration
-        messages.success(request, "Worker registered successfully. Please log in.")
         return redirect("login")
 
     # Provide dropdown options for bank names
@@ -134,7 +144,8 @@ def login(request):
                 SELECT u.Id, u.Name, u.Pwd, 
                        CASE 
                            WHEN EXISTS (SELECT 1 FROM worker WHERE worker.Id = u.Id) THEN 'worker'
-                           ELSE 'user' 
+                           WHEN EXISTS (SELECT 1 FROM customer WHERE customer.Id = u.Id) THEN 'customer'
+                           ELSE 'user'
                        END AS role
                 FROM users u
                 WHERE PhoneNum = %s
@@ -154,7 +165,6 @@ def login(request):
 
                     return redirect('view_categories')  # Redirect for user role
                     
-
                 else:
                     messages.error(request, "Invalid password. Please try again.")
             else:
