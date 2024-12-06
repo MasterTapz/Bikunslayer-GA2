@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -86,76 +86,6 @@ def dict_fetch_all(cursor):
 def get_db_connection():
     return psycopg2.connect(**DATABASE_CONFIG)  # Change `psycopg2` if using another DB driver
 
-@csrf_exempt
-def purchase_voucher(request):
-    if request.method == 'POST':
-        try:
-            # Parse the request data
-            data = json.loads(request.body)
-            voucher_code = data.get('code')
-            payment_method = data.get('paymentMethod')
-
-            if not voucher_code or not payment_method:
-                return JsonResponse({'success': False, 'message': 'Missing voucher code or payment method'})
-
-            # Example: Replace with actual logged-in user's ID
-            user_id = 1  # Get this from session, token, or user context
-
-            # Establish DB connection
-            conn = get_db_connection()
-            cursor = conn.cursor()
-
-            # Fetch voucher details
-            cursor.execute("SELECT discount_price FROM vouchers WHERE code = %s", (voucher_code,))
-            voucher = cursor.fetchone()
-
-            if not voucher:
-                return JsonResponse({'success': False, 'message': 'Invalid voucher code'})
-
-            voucher_price = voucher[0]
-
-            if payment_method == 'MyPay':
-                # Fetch user's balance
-                cursor.execute("SELECT mypay_balance FROM users WHERE id = %s", (user_id,))
-                user = cursor.fetchone()
-
-                if not user:
-                    return JsonResponse({'success': False, 'message': 'User not found'})
-
-                user_balance = user[0]
-
-                if user_balance < voucher_price:
-                    return JsonResponse({'success': False, 'message': 'Insufficient balance'})
-
-                # Deduct balance
-                cursor.execute(
-                    "UPDATE users SET mypay_balance = mypay_balance - %s WHERE id = %s",
-                    (voucher_price, user_id)
-                )
-
-            # Insert the purchase record
-            cursor.execute(
-                "INSERT INTO purchases (user_id, voucher_code, payment_method) VALUES (%s, %s, %s)",
-                (user_id, voucher_code, payment_method)
-            )
-
-            # Commit transaction
-            conn.commit()
-
-            return JsonResponse({'success': True, 'message': 'Voucher purchased successfully'})
-
-        except Exception as e:
-            print(f"Error: {e}")
-            return JsonResponse({'success': False, 'message': 'An error occurred'})
-        finally:
-            if 'cursor' in locals():
-                cursor.close()
-            if 'conn' in locals():
-                conn.close()
-
-    return JsonResponse({'success': False, 'message': 'Invalid request method'})
-
-
 import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -228,3 +158,94 @@ def create_testimonial(request):
             return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
 
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+
+import psycopg2
+from datetime import date, timedelta
+from django.http import JsonResponse
+
+
+import psycopg2
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
+from datetime import date, timedelta
+from django.contrib import messages
+
+
+@csrf_exempt
+
+def purchase_voucher(request):
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return redirect("login")
+
+    if request.method == "POST":
+        try:
+            # Fetch the voucher code from the request
+            voucher_code = request.POST.get("voucher_code")
+            payment_method = request.POST.get("payment_method")
+
+            with connection.cursor() as cursor:
+                # Step 1: Fetch the voucher details
+                cursor.execute("""
+                    SELECT Price
+                    FROM voucher
+                    WHERE Code = %s
+                """, [voucher_code])
+                voucher_data = cursor.fetchone()
+                if not voucher_data:
+                    messages.error(request, "Voucher does not exist.")
+                    return redirect("mypay")
+
+                voucher_price = voucher_data[0]
+
+                # Step 2: Fetch the user's current balance
+                cursor.execute("""
+                    SELECT MyPayBalance
+                    FROM users
+                    WHERE Id = %s
+                """, [user_id])
+                user_data = cursor.fetchone()
+                if not user_data:
+                    messages.error(request, "User does not exist.")
+                    return redirect("mypay")
+
+                user_balance = user_data[0]
+
+                # Step 3: Check if balance is sufficient
+                if user_balance < voucher_price:
+                    messages.error(request, "Insufficient balance.")
+                    return redirect("mypay")
+
+                # Step 4: Deduct the balance
+                cursor.execute("""
+                    UPDATE users
+                    SET MyPayBalance = MyPayBalance - %s
+                    WHERE Id = %s
+                """, [voucher_price, user_id])
+
+                # Step 5: Insert the voucher purchase transaction
+                cursor.execute("""
+                    INSERT INTO tr_voucher_payment
+                    (Id, PurchasedDate, ExpirationDate, AlreadyUse, CustomerId, VoucherId, PaymentMethodId)
+                    VALUES (
+                        gen_random_uuid(),
+                        NOW(),
+                        NOW() + INTERVAL '30 days', -- Assuming a 30-day validity
+                        0,
+                        %s,
+                        %s,
+                        (SELECT Id FROM payment_method WHERE Name = %s LIMIT 1)
+                    )
+                """, [user_id, voucher_code, payment_method])
+
+            messages.success(request, "Voucher purchased successfully.")
+        except Exception as e:
+            messages.error(request, f"An error occurred: {e}")
+        return redirect("mypay")
+
+    else:
+        messages.error(request, "Invalid request method.")
+        return redirect("mypay")
+

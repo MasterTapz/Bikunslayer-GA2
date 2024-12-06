@@ -101,6 +101,13 @@
         <button onclick="closeModal()">Cancel</button>
     </div>
 
+    <!-- Hidden Form for Submitting Voucher -->
+    <form id="buy-voucher-form" action="/purchase-voucher/" method="POST" style="display: none;">
+        {% csrf_token %}
+        <input type="hidden" id="voucher_code" name="voucher_code">
+        <input type="hidden" id="payment_method" name="payment_method">
+    </form>
+
     <script>
         let selectedVoucherCode = null;
 
@@ -161,17 +168,10 @@
         document.getElementById('confirm-purchase').addEventListener('click', () => {
             const paymentMethod = document.getElementById('payment-method').value;
 
-            fetch('/purchase-voucher', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: selectedVoucherCode, paymentMethod }),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    closeModal();
-                    alert(data.success ? 'Voucher purchased successfully!' : 'Purchase failed: ' + data.message);
-                })
-                .catch(error => console.error('Error during purchase:', error));
+            // Submit the form data
+            document.getElementById('voucher_code').value = selectedVoucherCode;
+            document.getElementById('payment_method').value = paymentMethod;
+            document.getElementById('buy-voucher-form').submit();
         });
     </script>
 </body>

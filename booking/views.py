@@ -2,6 +2,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.db import connection
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from datetime import datetime
 
 # Checking Functions
 
@@ -44,6 +45,52 @@ def fetch_table_ids(table_name, columns):
 
 
 # View Functions
+def my_orders(request):
+    """
+    View to fetch and display all orders of the logged-in customer.
+    """
+    customer_id = request.session.get("user_id")
+
+    if not customer_id:
+        return HttpResponse("Unauthorized", status=401)
+
+    query = """
+        SELECT 
+            tso.Id AS id,
+            tso.OrderDate AS order_date,
+            tso.ServiceDate AS service_date,
+            tso.ServiceTime AS service_time,
+            ss.SubCategoryName AS subcategory,
+            tso.Session AS session,
+            tso.TotalPrice AS total_price,
+            tso.DiscountCode AS discount_code,
+            pm.Name AS payment_method,
+            u.Name AS worker,
+            os.Status AS status
+        FROM TR_SERVICE_ORDER tso
+        LEFT JOIN SERVICE_SUBCATEGORY ss ON tso.ServiceSubCategoryId = ss.Id
+        LEFT JOIN PAYMENT_METHOD pm ON tso.PaymentMethodId = pm.Id
+        LEFT JOIN WORKER w ON tso.WorkerId = w.Id
+        LEFT JOIN USERS u ON w.Id = u.Id
+        LEFT JOIN TR_ORDER_STATUS tos ON tso.Id = tos.ServiceTrId
+        LEFT JOIN ORDER_STATUS os ON tos.StatusId = os.Id
+        WHERE tso.CustomerId = %s
+        ORDER BY tso.OrderDate DESC
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(query, [customer_id])
+        orders = [
+            dict(zip([col[0] for col in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
+
+    return render(request, 'MyOrder.html', {'orders': orders})
+
+
+from decimal import Decimal
+
+from datetime import date
+from decimal import Decimal
 
 def my_orders(request):
     """
@@ -92,34 +139,78 @@ def book_service(request, subcategory_id, session):
     Handle booking a service session.
     """
     if request.method == "POST":
-        price = request.POST.get("price")
-        service_date = request.POST.get("serviceDate")
-        service_time = request.POST.get("serviceTime")
-        worker_id = request.POST.get("workerId")
-        discount_code = request.POST.get("discountCode") or None
-        payment_method_id = request.POST.get("paymentMethodId")
-        customer_id = request.session.get("user_id")
+        try:
+            # Retrieve values from the POST request
+            price = Decimal(request.POST.get("price"))  # Convert price to Decimal
+            service_date = request.POST.get("serviceDate")
+            service_time = request.POST.get("serviceTime")
+            worker_id = request.POST.get("workerId")
+            discount_code = request.POST.get("discountCode") or None
+            promo_code = request.POST.get("promoCode") or None
+            payment_method_id = request.POST.get("paymentMethodId")
+            customer_id = request.session.get("user_id")
 
-        # Insert into TR_SERVICE_ORDER
-        query = """
-            INSERT INTO TR_SERVICE_ORDER (
-                Id, OrderDate, ServiceDate, ServiceTime, CustomerId,
-                WorkerId, ServiceSubCategoryId, Session, TotalPrice,
-                DiscountCode, PaymentMethodId
-            ) VALUES (
-                gen_random_uuid(), CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s, %s, %s
-            )
-        """
-        with connection.cursor() as cursor:
-            cursor.execute(query, [
-                service_date, service_time, customer_id, worker_id, 
-                subcategory_id, session, price, discount_code, payment_method_id
-            ])
+            # Apply discount code if provided
+            if discount_code:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT Discount
+                        FROM DISCOUNT
+                        WHERE Code = %s
+                    """, [discount_code])
+                    discount_data = cursor.fetchone()
+                    if discount_data:
+                        discount_percentage = Decimal(discount_data[0])  # Ensure discount is Decimal
+                        # Apply discount to price
+                        price -= price * (discount_percentage / Decimal(100))
 
-        return HttpResponseRedirect(reverse('subcategory_detail', args=[subcategory_id]))
-    return HttpResponse("Invalid request method", status=405)
+            # Apply promo code if provided
+            if promo_code:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT d.Discount, d.MinTrOrder, p.OfferEndDate
+                        FROM PROMO p
+                        INNER JOIN DISCOUNT d ON p.Code = d.Code
+                        WHERE p.Code = %s
+                    """, [promo_code])
+                    promo_data = cursor.fetchone()
+                    if promo_data:
+                        promo_discount, min_order, offer_end_date = list(map(Decimal, promo_data[:2])) + [promo_data[2]]
+                        
+                        # Validate promo code expiration
+                        if offer_end_date < datetime.now().date():
+                            return JsonResponse({'error': 'The promo code has expired.'}, status=400)
+
+                        # Validate minimum transaction order
+                        if price < min_order:
+                            return JsonResponse({'error': 'Order does not meet the minimum requirement for this promo code.'}, status=400)
+
+                        # Apply promo discount
+                        price = price - (price * (promo_discount / Decimal(100)))
 
 
+            # Insert into TR_SERVICE_ORDER
+            query = """
+                INSERT INTO TR_SERVICE_ORDER (
+                    Id, OrderDate, ServiceDate, ServiceTime, CustomerId,
+                    WorkerId, ServiceSubCategoryId, Session, TotalPrice,
+                    DiscountCode, PaymentMethodId
+                ) VALUES (
+                    gen_random_uuid(), CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query, [
+                    service_date, service_time, customer_id, worker_id,
+                    subcategory_id, session, price, discount_code, payment_method_id
+                ])
+
+            return JsonResponse({'success': True, 'message': 'Service booked successfully!'}, status=200)
+
+        except Exception as e:
+            return JsonResponse({'error': f"An error occurred: {str(e)}"}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 def view_subcategory_detail(request, subcategory_id):
@@ -127,6 +218,11 @@ def view_subcategory_detail(request, subcategory_id):
     sessions = fetch_service_sessions(subcategory_id)
     workers = fetch_workers(subcategory_id)
     testimonials = fetch_testimonials_by_subcategory(subcategory_id)
+    user_id = request.session.get("user_id")
+    user_vouchers = get_user_vouchers(user_id) if user_id else []
+    promotions = get_promotions(request)
+
+    print("Promotions Data:", promotions)
 
     # Fetch available payment methods
     payment_methods_query = "SELECT Id, Name FROM PAYMENT_METHOD"
@@ -142,10 +238,22 @@ def view_subcategory_detail(request, subcategory_id):
         'workers': workers,
         'testimonials': testimonials,
         'payment_methods': payment_methods,
+        "user_vouchers": user_vouchers,
+        'promotions': promotions,
     }
     return render(request, 'subcategory_detail.html', context)
 
 
+def get_promotions(request):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT D.Code, D.Discount, D.MinTrOrder, P.OfferEndDate
+            FROM DISCOUNT D
+            INNER JOIN PROMO P ON D.Code = P.Code
+            WHERE P.OfferEndDate >= CURRENT_DATE
+        """)
+        promotions = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+    return promotions
 
 
 
@@ -435,3 +543,118 @@ def fetch_testimonials_by_subcategory(subcategory_id):
         cursor.execute(testimonials_query, [subcategory_id])
         testimonials = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
     return testimonials
+
+
+from django.db import connection
+
+def get_user_vouchers(user_id):
+    """
+    Fetches all vouchers purchased by a user.
+
+    Args:
+        user_id (str): The UUID of the user.
+
+    Returns:
+        list: A list of dictionaries containing voucher details.
+    """
+    query = """
+        SELECT 
+            tvp.Id AS transaction_id,
+            tvp.PurchasedDate AS purchased_date,
+            tvp.ExpirationDate AS expiration_date,
+            tvp.AlreadyUse AS already_used,
+            v.Code AS voucher_code,
+            v.NmbDayValid AS valid_days,
+            v.UserQuota AS user_quota,
+            v.Price AS price,
+            d.Discount AS discount_percentage,
+            d.MinTrOrder AS minimum_transaction_order
+        FROM 
+            TR_VOUCHER_PAYMENT tvp
+        INNER JOIN 
+            VOUCHER v ON tvp.VoucherId = v.Code
+        INNER JOIN 
+            DISCOUNT d ON v.Code = d.Code
+        WHERE 
+            tvp.CustomerId = %s;
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(query, [user_id])
+            # Fetch all rows and convert them to a list of dictionaries
+            columns = [col[0] for col in cursor.description]
+            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        return results
+    except Exception as e:
+        print(f"Error fetching user vouchers: {e}")
+        return []
+
+def get_promo_details(promo_code):
+    """
+    Fetch promo details by code.
+    """
+    query = """
+        SELECT D.Discount, P.OfferEndDate
+        FROM PROMO P
+        INNER JOIN DISCOUNT D ON P.Code = D.Code
+        WHERE P.Code = %s
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(query, [promo_code])
+        row = cursor.fetchone()
+        if row:
+            discount, offer_end_date = row
+            return {"discount": discount, "offer_end_date": offer_end_date}
+        return None
+
+def render_booking_page(request, subcategory_id):
+    """
+    Render the booking page with promotions, sessions, and workers.
+    """
+    try:
+        # Fetch the subcategory, sessions, and workers (your existing queries)
+        # These are placeholders; replace them with your actual queries
+        subcategory = get_subcategory(subcategory_id)  # Replace with actual logic
+        sessions = get_sessions(subcategory_id)       # Replace with actual logic
+        workers = get_workers(subcategory_id)         # Replace with actual logic
+
+        # Fetch promotions
+        query = """
+            SELECT 
+                p.Code AS promo_code,
+                d.Discount AS discount_percentage,
+                d.MinTrOrder AS min_transaction_order,
+                p.OfferEndDate AS offer_end_date
+            FROM 
+                PROMO p
+            INNER JOIN 
+                DISCOUNT d ON p.Code = d.Code
+            WHERE 
+                p.OfferEndDate >= CURRENT_DATE
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            columns = [col[0] for col in cursor.description]
+            promotions = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        return render(request, 'booking_page.html', {
+            'subcategory': subcategory,
+            'sessions': sessions,
+            'workers': workers,
+            'promotions': promotions,
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'An error occurred: {e}'})
+
+
+def fetch_promotions(request):
+    query = """
+        SELECT P.Code, D.Discount, P.OfferEndDate
+        FROM PROMO P
+        INNER JOIN DISCOUNT D ON P.Code = D.Code
+        WHERE P.OfferEndDate >= CURRENT_DATE
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        promotions = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+    return JsonResponse({'promotions': promotions})
