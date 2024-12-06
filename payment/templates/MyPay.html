@@ -131,10 +131,13 @@
 <body>
     <!-- Navbar -->
     {% if request.session.user_role == "worker" %}
-        {% include "worker_navbar.html" %}
+    {% include "worker_navbar.html" %}
     {% elif request.session.user_role == "user" %}
         {% include "user_navbar.html" %}
+    {% elif request.session.user_role == "customer" %}
+        {% include "user_navbar.html" %}
     {% else %}
+        <!-- Default or guest navbar -->
         {% include "guest_navbar.html" %}
     {% endif %}
 
@@ -143,10 +146,10 @@
         <div class="header">
             <div>
                 <span>Phone Number: <strong>{{ phone_number }}</strong></span>
-                <span class="balance">Balance: Rp<span>{{ balance }}</span></span>
+                <span class="balance">Balance: $<span>{{ balance }}</span></span>
             </div>
             <div class="button-container">
-                <button class="button" onclick="location.href='/mypay/transaction/'">Transact</button>
+                <button class="button" onclick="location.href='/mypay/transaction/'">Transaction</button>
             </div>
         </div>
 

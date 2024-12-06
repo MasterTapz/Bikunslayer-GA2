@@ -68,8 +68,17 @@ def MyPay_Transaction(request):
             messages.error(request, f"An error occurred: {e}")
         return redirect("mypay_transaction")
 
-    # Fetch transaction history for the user
+    # Fetch user details and transaction history
     with connection.cursor() as cursor:
+        # Fetch the user's phone number and balance
+        cursor.execute("""
+            SELECT PhoneNum, MyPayBalance FROM users WHERE Id = %s
+        """, [user_id])
+        user_data = cursor.fetchone()
+        phone_number = user_data[0]
+        balance = user_data[1]
+
+        # Fetch user's transaction history
         cursor.execute("""
             SELECT t.Nominal, t.Date, c.Name AS CategoryName
             FROM tr_mypay t
@@ -79,14 +88,18 @@ def MyPay_Transaction(request):
         """, [user_id])
         transactions = cursor.fetchall()
 
-    # Pass transaction history to the template
+    # Pass transaction history, phone number, and balance to the template
     context = {
+        "phone_number": phone_number,
+        "balance": balance,
         "transactions": [
-            {"nominal": row[0], "date": row[1], "category": row[2]}
+            {"nominal": row[0], "date": row[1].strftime("%Y-%m-%d %H:%M:%S"), "category": row[2]}
             for row in transactions
         ],
     }
     return render(request, 'MyPay_Transactions.html', context)
+
+
 
 
 def ServiceJob_Status(request):

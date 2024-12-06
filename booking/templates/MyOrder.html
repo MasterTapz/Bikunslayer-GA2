@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Navbar Section -->
+    {% if request.session.user_role == "worker" %}
+    {% include "worker_navbar.html" %}
+{% elif request.session.user_role == "user" %}
+    {% include "user_navbar.html" %}
+{% elif request.session.user_role == "customer" %}
+    {% include "user_navbar.html" %}
+{% else %}
+    <!-- Default or guest navbar -->
+    {% include "guest_navbar.html" %}
+{% endif %}
+    <!-- Orders Section -->
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">My Orders</h1>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+            <table class="w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-200 text-left">
+                    <tr>
+                        <th class="px-4 py-2 border border-gray-300">Order Date</th>
+                        <th class="px-4 py-2 border border-gray-300">Service Date</th>
+                        <th class="px-4 py-2 border border-gray-300">Service Time</th>
+                        <th class="px-4 py-2 border border-gray-300">Subcategory</th>
+                        <th class="px-4 py-2 border border-gray-300">Session</th>
+                        <th class="px-4 py-2 border border-gray-300">Total Price</th>
+                        <th class="px-4 py-2 border border-gray-300">Discount Code</th>
+                        <th class="px-4 py-2 border border-gray-300">Payment Method</th>
+                        <th class="px-4 py-2 border border-gray-300">Worker</th>
+                        <th class="px-4 py-2 border border-gray-300 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if orders %}
+                        {% for order in orders %}
+                            <tr class="hover:bg-gray-100">
+                                <td class="px-4 py-2 border border-gray-300">{{ order.order_date }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.service_date }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.service_time }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.subcategory }}</td>
+                                <td class="px-4 py-2 border border-gray-300 text-center">{{ order.session }}</td>
+                                <td class="px-4 py-2 border border-gray-300 text-right">${{ order.total_price }}</td>
+                                <td class="px-4 py-2 border border-gray-300 text-center">{{ order.discount_code|default:"N/A" }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.payment_method }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.worker }}</td>
+                                <td class="px-4 py-2 border border-gray-300 text-center">
+                                    {% if order.total_price > 0 %}
+                                        <button 
+                                            onclick="payOrder('{{ order.id }}')" 
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md">
+                                            Pay Now
+                                        </button>
+                                    {% else %}
+                                        <span class="text-green-500 font-semibold">Paid</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center text-gray-500 px-4 py-6">
+                                You have no orders yet.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        function payOrder(orderId) {
+            // Redirect to the payment page or handle payment logic
+            const paymentUrl = `/pay-order/${orderId}/`;
+            window.location.href = paymentUrl;
+        }
+    </script>
+</body>
+</html>
