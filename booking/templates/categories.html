@@ -5,6 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Service Categories</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        function filterCategories() {
+            const selectedCategoryId = document.getElementById("categoryFilter").value;
+            const searchQuery = document.getElementById("subcategorySearch").value.toLowerCase();
+
+            document.querySelectorAll(".category").forEach(category => {
+                const categoryId = category.getAttribute("data-category-id");
+                const subcategories = category.querySelectorAll(".subcategory");
+
+                let hasVisibleSubcategories = false;
+
+                subcategories.forEach(subcategory => {
+                    const subcategoryName = subcategory.getAttribute("data-subcategory-name").toLowerCase();
+
+                    const matchesSearch = subcategoryName.includes(searchQuery);
+                    const matchesCategory = selectedCategoryId === "" || categoryId === selectedCategoryId;
+
+                    const isVisible = matchesSearch && matchesCategory;
+
+                    subcategory.style.display = isVisible ? "block" : "none";
+
+                    if (isVisible) {
+                        hasVisibleSubcategories = true;
+                    }
+                });
+
+                category.style.display = hasVisibleSubcategories ? "block" : "none";
+            });
+        }
+    </script>
 </head>
 <body class="bg-gray-100">
     {% if request.session.user_role == "worker" %}
@@ -21,33 +51,40 @@
             <h1 class="text-2xl font-bold">Service Categories</h1>
             <div class="flex space-x-4">
                 <!-- Category Filter -->            
-                <select class="border rounded-md p-2">
+                <select id="categoryFilter" class="border rounded-md p-2" onchange="filterCategories()">
                     <option value="">All Categories</option>
                     {% for category in categories %}
                         <option value="{{ category.id }}">{{ category.categoryname }}</option>
                     {% endfor %}
                 </select>
                 <!-- Subcategory Search -->
-                <input type="text" class="border rounded-md p-2 w-64" placeholder="Search Subcategories">
-                <button class="bg-blue-500 text-white rounded-md px-4 py-2">Search</button>
+                <input id="subcategorySearch" type="text" class="border rounded-md p-2 w-64" placeholder="Search Subcategories" onkeyup="filterCategories()">
             </div>
         </div>
 
         <!-- Categories List -->
         {% for category in categories %}
             <!-- Category -->
-            <h2 class="text-lg font-semibold bg-gray-200 rounded-md px-4 py-2">{{ category.categoryname }}</h2>
-            <div class="bg-white shadow-md rounded-md">
-                {% if category.subcategories %}
-                    {% for subcategory in category.subcategories %}
-                        <a href="{% url 'subcategory_detail' subcategory.id %}" class="block px-4 py-2 border-b hover:bg-gray-100">
-                            {{ subcategory.subcategoryname }}
-                            <p class="text-sm text-gray-500">{{ subcategory.description }}</p>
-                        </a>
-                    {% endfor %}
-                {% else %}
-                    <p class="px-4 py-2 text-gray-500">No subcategories available.</p>
-                {% endif %}
+            <div class="category" data-category-id="{{ category.id }}">
+                <h2 class="text-lg font-semibold bg-gray-200 rounded-md px-4 py-2">{{ category.categoryname }}</h2>
+                <div class="bg-white shadow-md rounded-md">
+                    {% if category.subcategories %}
+                        {% for subcategory in category.subcategories %}
+                            <a href="{% if request.session.user_role == 'worker' %}
+                                        {% url 'subcategory_detail_worker' subcategory.id request.session.user_id %}
+                                      {% else %}
+                                        {% url 'subcategory_detail' subcategory.id %}
+                                      {% endif %}"
+                               class="subcategory block px-4 py-2 border-b hover:bg-gray-100"
+                               data-subcategory-name="{{ subcategory.subcategoryname }}">
+                                {{ subcategory.subcategoryname }}
+                                <p class="text-sm text-gray-500">{{ subcategory.description }}</p>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <p class="px-4 py-2 text-gray-500">No subcategories available.</p>
+                    {% endif %}
+                </div>
             </div>
         {% endfor %}
     </div>
