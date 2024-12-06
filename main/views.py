@@ -38,6 +38,13 @@ def register_user(request):
             messages.error(request, "Invalid value for sex. Please choose 'Male' or 'Female'.")
             return redirect("register_user")
 
+        # Check if phone number is already registered
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT COUNT(*) FROM users WHERE PhoneNum = %s", [phone_number])
+            if cursor.fetchone()[0] > 0:
+                messages.error(request, "Phone number is already registered.")
+                return redirect("register_user")
+
         # Insert user and customer into the database
         with connection.cursor() as cursor:
             try:
@@ -53,14 +60,12 @@ def register_user(request):
                     VALUES (%s, %s)
                 """, [str(user_id), 'Basic'])
 
-                messages.success(request, "User registered successfully.")
                 return redirect("login")
             except Exception as e:
                 messages.error(request, f"Error: {e}")
                 return redirect("register_user")
 
     return render(request, "register_user.html")
-
 
 @csrf_exempt
 def register_worker(request):
@@ -204,6 +209,19 @@ def user_profile(request):
             return redirect("user_profile")
 
         with connection.cursor() as cursor:
+            # Check if the phone number is already taken by another user
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM users 
+                WHERE PhoneNum = %s AND Id != %s
+            """, [phone_number, user_id])
+            count = cursor.fetchone()[0]
+
+            if count > 0:
+                messages.error(request, "This phone number is already registered with another account.")
+                return redirect("user_profile")
+
+            # Update the user's profile
             cursor.execute("""
                 UPDATE users 
                 SET Name = %s, PhoneNum = %s, Sex = %s, DoB = %s, Address = %s 
@@ -213,6 +231,7 @@ def user_profile(request):
         messages.success(request, "Profile updated successfully.")
         return redirect("user_profile")
 
+    # Fetch the current user's profile data
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT Name, PhoneNum, Sex, DoB, Address, MyPayBalance 
@@ -232,7 +251,6 @@ def user_profile(request):
 
     return render(request, "user_profile.html", {"profile": profile_data})
 
-
 @csrf_exempt
 def worker_profile(request):
     worker_id = request.session.get("user_id")
@@ -241,6 +259,7 @@ def worker_profile(request):
 
     if request.method == "POST":
         name = request.POST.get("name")
+        password = request.POST.get("password") 
         phone_number = request.POST.get("phone_number")
         sex = request.POST.get("sex")
         birthdate = request.POST.get("birthdate")
@@ -255,12 +274,42 @@ def worker_profile(request):
             return redirect("worker_profile")
 
         with connection.cursor() as cursor:
+            # Check for unique phone number
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM users 
+                WHERE PhoneNum = %s AND Id != %s
+            """, [phone_number, worker_id])
+            if cursor.fetchone()[0] > 0:
+                messages.error(request, "The phone number is already in use by another user.")
+                return redirect("worker_profile")
+
+            # Check for unique NPWP
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM worker 
+                WHERE NPWP = %s AND Id != %s
+            """, [npwp, worker_id])
+            if cursor.fetchone()[0] > 0:
+                messages.error(request, "The NPWP is already in use by another worker.")
+                return redirect("worker_profile")
+
+            # Check for unique bank name and account number combination
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM worker 
+                WHERE BankName = %s AND AccNumber = %s AND Id != %s
+            """, [bank_name, account_number, worker_id])
+            if cursor.fetchone()[0] > 0:
+                messages.error(request, "The bank name and account number combination is already in use by another worker.")
+                return redirect("worker_profile")
+
             # Update the `users` table
             cursor.execute("""
                 UPDATE users 
-                SET Name = %s, PhoneNum = %s, Sex = %s, DoB = %s, Address = %s 
+                SET Name = %s, PhoneNum = %s, Sex = %s, DoB = %s, Address = %s , pwd = %s
                 WHERE Id = %s
-            """, [name, phone_number, sex, birthdate, address, worker_id])
+            """, [name, phone_number, sex, birthdate, address, password, worker_id])
 
             # Update the `worker` table
             cursor.execute("""
@@ -275,7 +324,7 @@ def worker_profile(request):
     with connection.cursor() as cursor:
         # Fetch the worker's profile data
         cursor.execute("""
-            SELECT u.Name, u.PhoneNum, u.Sex, u.DoB, u.Address, u.MyPayBalance, 
+            SELECT u.Name, u.PhoneNum, u.Sex, u.DoB, u.Address, u.MyPayBalance, u.Pwd,
                    w.BankName, w.AccNumber, w.NPWP, w.Rate, w.TotalFinishOrder, w.PicURL 
             FROM users u 
             JOIN worker w ON u.Id = w.Id 
@@ -290,15 +339,17 @@ def worker_profile(request):
         "birthdate": worker_data[3],
         "address": worker_data[4],
         "my_pay_balance": worker_data[5],
-        "bank_name": worker_data[6],
-        "account_number": worker_data[7],
-        "npwp": worker_data[8],
-        "rate": worker_data[9],
-        "total_finish_order": worker_data[10],
-        "pic_url": worker_data[11],  # Add the pic_url to the profile data
+        "password": worker_data[6],
+        "bank_name": worker_data[7],
+        "account_number": worker_data[8],
+        "npwp": worker_data[9],
+        "rate": worker_data[10],
+        "total_finish_order": worker_data[11],
+        "pic_url": worker_data[12],
     }
 
     return render(request, "worker_profile.html", {"profile": profile_data})
+
 
 
 def get_testimonials(request):
