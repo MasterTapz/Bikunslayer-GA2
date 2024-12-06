@@ -10,12 +10,15 @@
 
     <!-- Navbar Section -->
     {% if request.session.user_role == "worker" %}
-        {% include "worker_navbar.html" %}
-    {% elif request.session.user_role == "user" %}
-        {% include "user_navbar.html" %}
-    {% else %}
-        {% include "guest_navbar.html" %}
-    {% endif %}
+    {% include "worker_navbar.html" %}
+{% elif request.session.user_role == "user" %}
+    {% include "user_navbar.html" %}
+{% elif request.session.user_role == "customer" %}
+    {% include "user_navbar.html" %}
+{% else %}
+    <!-- Default or guest navbar -->
+    {% include "guest_navbar.html" %}
+{% endif %}
 
     <div class="container mx-auto px-4 py-8 bg-white shadow-md rounded-md">
 

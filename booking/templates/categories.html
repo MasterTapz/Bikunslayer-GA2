@@ -38,7 +38,7 @@
 </head>
 <body class="bg-gray-100">
     {% if request.session.user_role == "worker" %}
-        {% include "worker_navbar.html" %}
+    {% include "worker_navbar.html" %}
     {% elif request.session.user_role == "user" %}
         {% include "user_navbar.html" %}
     {% elif request.session.user_role == "customer" %}
