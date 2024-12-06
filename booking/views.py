@@ -45,6 +45,48 @@ def fetch_table_ids(table_name, columns):
 
 # View Functions
 
+def my_orders(request):
+    """
+    View to fetch and display all orders of the logged-in customer.
+    """
+    customer_id = request.session.get("user_id")
+
+    if not customer_id:
+        return HttpResponse("Unauthorized", status=401)
+
+    query = """
+        SELECT 
+            tso.Id AS id,
+            tso.OrderDate AS order_date,
+            tso.ServiceDate AS service_date,
+            tso.ServiceTime AS service_time,
+            ss.SubCategoryName AS subcategory,
+            tso.Session AS session,
+            tso.TotalPrice AS total_price,
+            tso.DiscountCode AS discount_code,
+            pm.Name AS payment_method,
+            u.Name AS worker,
+            os.Status AS status
+        FROM TR_SERVICE_ORDER tso
+        LEFT JOIN SERVICE_SUBCATEGORY ss ON tso.ServiceSubCategoryId = ss.Id
+        LEFT JOIN PAYMENT_METHOD pm ON tso.PaymentMethodId = pm.Id
+        LEFT JOIN WORKER w ON tso.WorkerId = w.Id
+        LEFT JOIN USERS u ON w.Id = u.Id
+        LEFT JOIN TR_ORDER_STATUS tos ON tso.Id = tos.ServiceTrId
+        LEFT JOIN ORDER_STATUS os ON tos.StatusId = os.Id
+        WHERE tso.CustomerId = %s
+        ORDER BY tso.OrderDate DESC
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(query, [customer_id])
+        orders = [
+            dict(zip([col[0] for col in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
+
+    return render(request, 'MyOrder.html', {'orders': orders})
+
+
 def book_service(request, subcategory_id, session):
     """
     Handle booking a service session.

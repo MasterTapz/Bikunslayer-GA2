@@ -3,24 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Transaction Form</title>
+    <title>MyPay Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
+            background-color: #f9f9f9;
         }
 
         /* Navbar styles */
         .navbar {
             width: 100%;
             background-color: #007BFF;
-            color: white;
+            color: #fff;
             padding: 15px 20px;
             display: flex;
             align-items: center;
@@ -43,21 +39,36 @@
         }
 
         .container {
-            width: 90%;
+            width: 80%;
             max-width: 800px;
             background: #ffffff;
-            border-radius: 10px;
-            padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-top: 100px; /* Adjust for the navbar */
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 100px auto 0;
         }
 
-        h3 {
-            text-align: center;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f4f4f4;
+        }
+
+        .header div {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .balance {
+            font-size: 1.2em;
+            font-weight: bold;
         }
 
         .form-section {
-            margin-top: 20px;
+            margin: 20px;
         }
 
         .form-section label {
@@ -77,12 +88,6 @@
             font-size: 14px;
         }
 
-        .form-section input:focus,
-        .form-section select:focus {
-            border-color: #007BFF;
-            outline: none;
-        }
-
         .form-section button {
             background-color: #007BFF;
             color: #fff;
@@ -90,34 +95,35 @@
             border: none;
         }
 
-        .form-section button:hover {
-            background-color: #0056b3;
+        .transaction-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .form-container {
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-            margin-top: 20px;
-        }
-
-        .info-section {
+        .transaction-item {
             display: flex;
             justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
             align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
         }
 
-        .info-section div {
-            font-size: 14px;
+        .transaction-item span {
+            width: 30%;
+            text-align: center;
+            font-size: 0.9em;
+            font-weight: bold;
         }
 
-        .info-section div strong {
-            display: block;
-            margin-bottom: 5px;
+        .transaction-item span:first-child {
+            color: green; /* Positive amounts */
+        }
+
+        .transaction-item span:first-child.negative {
+            color: red; /* Negative amounts */
         }
 
         .hidden {
@@ -127,32 +133,28 @@
 </head>
 <body>
     <!-- Navbar -->
-    <div class="navbar">
-        {% if request.session.user_role == "worker" %}
-            {% include "worker_navbar.html" %}
-        {% elif request.session.user_role == "user" %}
-            {% include "user_navbar.html" %}
-        {% else %}
-            {% include "guest_navbar.html" %}
-        {% endif %}
-    </div>
+    {% if request.session.user_role == "worker" %}
+        {% include "worker_navbar.html" %}
+    {% elif request.session.user_role == "user" %}
+        {% include "user_navbar.html" %}
+    {% elif request.session.user_role == "customer" %}
+        {% include "user_navbar.html" %}
+    {% else %}
+        {% include "guest_navbar.html" %}
+    {% endif %}
 
     <div class="container">
-        <h3>Transaction Form</h3>
-
-        <!-- Info Section -->
-        <div class="info-section">
+        <!-- Header -->
+        <div class="header">
             <div>
-                <strong>User's Name: {{ request.session.user_name }}</strong>
-            </div>
-            <div>
-                <strong>MyPay Balance: Rp {{ balance }}</strong>
+                <span>Phone Number: <strong>{{ phone_number }}</strong></span>
+                <span class="balance">Balance: $ {{ balance }}</span>
             </div>
         </div>
 
-        <!-- Transaction Type Selector -->
+        <!-- Transaction Form -->
         <div class="form-section">
-            <label for="transactionType">Transaction Category:</label>
+            <label for="transactionType">Transaction Type:</label>
             <select id="transactionType" onchange="switchForm()">
                 <option value="">-- Select Transaction --</option>
                 <option value="topup">TopUp</option>
@@ -220,32 +222,10 @@
 
     <script>
         function switchForm() {
-            // Hide all forms
-            document.querySelectorAll('.form-container').forEach(form => {
-                form.classList.add('hidden');
-            });
-
-            // Show selected form
+            document.querySelectorAll('.form-container').forEach(form => form.classList.add('hidden'));
             const selectedType = document.getElementById('transactionType').value;
             if (selectedType) {
                 document.getElementById(selectedType + 'Form').classList.remove('hidden');
-            }
-        }
-    </script>
-    <script>
-        function showRelevantFields() {
-            document.getElementById('topupFields').classList.add('hidden');
-            document.getElementById('withdrawalFields').classList.add('hidden');
-            document.getElementById('transferFields').classList.add('hidden');
-
-            const transactionType = document.getElementById('transactionType').value;
-
-            if (transactionType === 'topup') {
-                document.getElementById('topupFields').classList.remove('hidden');
-            } else if (transactionType === 'withdrawal') {
-                document.getElementById('withdrawalFields').classList.remove('hidden');
-            } else if (transactionType === 'transfer') {
-                document.getElementById('transferFields').classList.remove('hidden');
             }
         }
     </script>
