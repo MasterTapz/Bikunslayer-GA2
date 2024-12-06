@@ -150,8 +150,11 @@ def login(request):
                     request.session['user_id'] = str(user_id)
                     request.session['user_name'] = user_name
                     request.session['user_role'] = user_role
+                    print(f"Session data after login: {request.session}")
 
                     return redirect('view_categories')  # Redirect for user role
+                    
+
                 else:
                     messages.error(request, "Invalid password. Please try again.")
             else:
@@ -286,3 +289,31 @@ def worker_profile(request):
     }
 
     return render(request, "worker_profile.html", {"profile": profile_data})
+
+
+def get_testimonials(request):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT
+                T.date AS date,
+                T.Text AS text,
+                T.Rating AS rating,
+                U.Name AS username,
+                UW.Name AS workername
+            FROM TESTIMONI T
+            INNER JOIN TR_SERVICE_ORDER S ON T.ServiceTrId = S.Id
+            INNER JOIN customer C ON S.customerId = C.Id
+            INNER JOIN users U ON C.Id = U.Id
+            INNER JOIN worker W ON S.workerId = W.Id
+            INNER JOIN users UW ON W.Id = UW.Id
+        """)
+        testimonials = dict_fetch_all(cursor)
+    return JsonResponse({'testimonials': testimonials})
+def dict_fetch_all(cursor):
+    # Return all rows from a cursor as a dict
+    columns = [col[0] for col in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]
+

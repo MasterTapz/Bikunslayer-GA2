@@ -2,47 +2,235 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Testimonial</title>
+    <title>Testimonials</title>
+    <style>
+        /* Common Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 50px auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333333;
+        }
+        .section {
+            margin-top: 20px;
+        }
+        .section h2 {
+            margin-bottom: 15px;
+        }
+        .testimonial-item, .worker-item {
+            border-bottom: 1px solid #dddddd;
+            padding: 15px 0;
+        }
+        .testimonial-item:last-child,
+        .worker-item:last-child {
+            border-bottom: none;
+        }
+        .section-content {
+            display: flex;
+            gap: 20px;
+        }
+        .column {
+            flex: 1;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .create-testimonial {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .create-testimonial:hover {
+            background-color: #0056b3;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            width: 400px;
+        }
+        .modal h3 {
+            margin-top: 0;
+        }
+        .modal button {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <!-- Testimonial Section -->
-    <div style="border: 1px solid #ddd; padding: 20px; margin: 20px;">
-        <h2>Testimonials</h2>
-        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
-            <h3>Subcategory Name: <span>Service Subcategory</span></h3>
-            <h3>Category: <span>Service Category</span></h3>
-            <p>Description: Brief description of the service.</p>
-        </div>
+    <div class="container">
+        <h1>Testimonial Page</h1>
 
-        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
-            <h3>Service Session Options</h3>
-            <div>
-                <p>Service Session 1 - Price: $XX <button>Book Service</button></p>
-                <p>Service Session 2 - Price: $XX <button>Book Service</button></p>
+        <div class="section">
+            <div class="section-content">
+                <!-- Left Column -->
+                <div class="column">
+                    <h2>Available Workers</h2>
+                    <div id="workers"></div>
+                </div>
+                <!-- Right Column -->
+                <div class="column">
+                    <h2>Testimonials</h2>
+                    <div id="testimonials"></div>
+                </div>
             </div>
         </div>
-
-        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
-            <h3>Workers</h3>
-            <p>Worker Name 1</p>
-            <p>Worker Name 2</p>
-            <p>Worker Name 3</p>
-            <p>Worker Name 4</p>
-        </div>
-
-        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
-            <h3>Testimonials</h3>
-            <div>
-                <p>User Name: <span>User 1</span></p>
-                <p>Date: <span>DD/MM/YYYY</span></p>
-                <p>Worker Name: <span>Worker 1</span></p>
-                <p>Rating: <span>5 Stars</span></p>
-                <p>Text: <span>Great service!</span></p>
-            </div>
-        </div>
-
-        <button>Create Testimonial</button>
+        <button class="create-testimonial" onclick="openModal()">Create Testimonial</button>
     </div>
+
+    <!-- Create Testimonial Modal -->
+    <div id="testimonial-modal" class="modal">
+        <h3>Create Testimonial</h3>
+        <form id="testimonial-form">
+            <label for="worker">Worker Name:</label>
+            <select id="worker" name="worker" required></select>
+            <br><br>
+            <label for="rating">Rating (1-10):</label>
+            <select id="rating" name="rating" required>
+                <option value="" disabled selected>Select Rating</option>
+            </select>
+            <br><br>
+            <label for="comment">Comment:</label>
+            <textarea id="comment" name="comment" rows="4" required></textarea>
+            <br><br>
+            <button type="submit">Submit</button>
+            <button type="button" onclick="closeModal()">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        // Fetch Testimonials
+        fetch('/api/testimonials/')
+            .then(response => response.json())
+            .then(data => {
+                const testimonialsDiv = document.getElementById('testimonials');
+                data.testimonials.forEach(testimonial => {
+                    const testimonialItem = document.createElement('div');
+                    testimonialItem.className = 'testimonial-item';
+                    testimonialItem.innerHTML = `
+                        <p><strong>User Name:</strong> ${testimonial.username}</p>
+                        <p><strong>Date:</strong> ${testimonial.date}</p>
+                        <p><strong>Worker Name:</strong> ${testimonial.workername}</p>
+                        <p><strong>Rating:</strong> ${testimonial.rating} Stars</p>
+                        <p><strong>Comment:</strong> ${testimonial.text}</p>
+                    `;
+                    testimonialsDiv.appendChild(testimonialItem);
+                });
+            })
+            .catch(error => console.error('Error fetching testimonials:', error));
+
+        fetch('/api/testimonials/')
+            .then(response => response.json())
+            .then(data => {
+                const workersDiv = document.getElementById('workers');
+                const workerNames = new Set();
+
+                data.testimonials.forEach(testimonial => {
+                    if (!workerNames.has(testimonial.workername)) {
+                        workerNames.add(testimonial.workername);
+
+                        const workerItem = document.createElement('div');
+                        workerItem.className = 'worker-item';
+                        workerItem.innerHTML = `
+                            <p><strong>Worker Name:</strong> ${testimonial.workername}</p>
+                        `;
+                        workersDiv.appendChild(workerItem);
+                    }
+                });
+            })
+            .catch(error => console.error('Error fetching workers:', error));
+
+        function openModal() {
+            document.getElementById('testimonial-modal').style.display = 'block';
+            const workerSelect = document.getElementById('worker');
+
+            fetch('/api/testimonials/')
+                .then(response => response.json())
+                .then(data => {
+                    const workers = new Set();
+                    data.testimonials.forEach(testimonial => {
+                        workers.add(testimonial.workername);
+                    });
+
+                    workerSelect.innerHTML = '';
+                    if (workers.size === 0) {
+                        workerSelect.innerHTML = '<option value="">No workers available</option>';
+                    } else {
+                        workers.forEach(worker => {
+                            workerSelect.innerHTML += `<option value="${worker}">${worker}</option>`;
+                        });
+                    }
+                })
+                .catch(error => console.error('Error fetching workers:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const ratingSelect = document.getElementById('rating');
+
+            // Populate the rating dropdown with options 1 to 10
+            for (let i = 1; i <= 10; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                ratingSelect.appendChild(option);
+            }
+        });
+
+
+        function closeModal() {
+            document.getElementById('testimonial-modal').style.display = 'none';
+        }
+
+        document.getElementById('testimonial-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const worker = document.getElementById('worker').value;
+            const rating = document.getElementById('rating').value;
+            const comment = document.getElementById('comment').value;
+
+            fetch('/create-testimonial/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ worker, rating, comment }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        closeModal();
+                        location.reload();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+    </script>
 </body>
 </html>
