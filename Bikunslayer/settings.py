@@ -81,20 +81,20 @@ WSGI_APPLICATION = 'Bikunslayer.wsgi.application'
 DATABASES = {
     'default': {
         #'ENGINE': 'django.db.backends.sqlite3',
-        # 'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        # 'NAME': 'Bikunslayer',
-        # 'USER': 'postgres',
-        # 'PASSWORD': 'Master123',
-        # 'HOST': 'localhost',
-        # 'PORT': '5432',
-
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'anindiyobanu',
+        'NAME': 'Bikunslayer',
         'USER': 'postgres',
-        'PASSWORD': '12345',
-        'HOST': 'localhost',  # E.g., 'containers-us-west-123.railway.app'
-        'PORT': '5432',  # E.g., '5432'
-    }
+        'PASSWORD': 'Master123',
+        'HOST': 'localhost',
+        'PORT': '5432',
+
+    #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
+    #     'NAME': 'anindiyobanu',
+    #     'USER': 'postgres',
+    #     'PASSWORD': '12345',
+    #     'HOST': 'localhost',  # E.g., 'containers-us-west-123.railway.app'
+    #     'PORT': '5432',  # E.g., '5432'
+     }
 
 }
 
