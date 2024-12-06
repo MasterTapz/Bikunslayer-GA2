@@ -89,9 +89,9 @@ DATABASES = {
         # 'PORT': '5432',
 
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'anindiyobanu',
+        'NAME': 'GA2',
         'USER': 'postgres',
-        'PASSWORD': '12345',
+        'PASSWORD': '1234',
         'HOST': 'localhost',  # E.g., 'containers-us-west-123.railway.app'
         'PORT': '5432',  # E.g., '5432'
     }

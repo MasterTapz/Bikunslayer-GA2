@@ -11,18 +11,45 @@
             margin: 0;
             padding: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             height: 100vh;
         }
 
+        /* Navbar styles */
+        .navbar {
+            width: 100%;
+            background-color: #007BFF;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+
         .container {
             width: 90%;
-            max-width: 600px;
+            max-width: 800px;
             background: #ffffff;
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 100px; /* Adjust for the navbar */
         }
 
         h3 {
@@ -39,30 +66,93 @@
             margin-bottom: 5px;
         }
 
-        .form-section input, 
-        .form-section select, 
+        .form-section input,
+        .form-section select,
         .form-section button {
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .form-section input:focus,
+        .form-section select:focus {
+            border-color: #007BFF;
+            outline: none;
+        }
+
+        .form-section button {
+            background-color: #007BFF;
+            color: #fff;
+            cursor: pointer;
+            border: none;
+        }
+
+        .form-section button:hover {
+            background-color: #0056b3;
+        }
+
+        .form-container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-top: 20px;
+        }
+
+        .info-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        .info-section div {
+            font-size: 14px;
+        }
+
+        .info-section div strong {
+            display: block;
+            margin-bottom: 5px;
         }
 
         .hidden {
             display: none;
         }
-
-        .form-actions {
-            text-align: center;
-        }
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <div class="navbar">
+        {% if request.session.user_role == "worker" %}
+            {% include "worker_navbar.html" %}
+        {% elif request.session.user_role == "user" %}
+            {% include "user_navbar.html" %}
+        {% else %}
+            {% include "guest_navbar.html" %}
+        {% endif %}
+    </div>
+
     <div class="container">
         <h3>Transaction Form</h3>
+
+        <!-- Info Section -->
+        <div class="info-section">
+            <div>
+                <strong>User's Name: {{ request.session.user_name }}</strong>
+            </div>
+            <div>
+                <strong>MyPay Balance: Rp {{ balance }}</strong>
+            </div>
+        </div>
+
+        <!-- Transaction Type Selector -->
         <div class="form-section">
-            <label for="transactionType">Transaction Type:</label>
+            <label for="transactionType">Transaction Category:</label>
             <select id="transactionType" onchange="switchForm()">
                 <option value="">-- Select Transaction --</option>
                 <option value="topup">TopUp</option>
@@ -72,71 +162,90 @@
             </select>
         </div>
 
-        <!-- State 1: TopUp -->
-        <div id="topupForm" class="form-section hidden">
-            <label for="topUpAmount">Amount:</label>
-            <input type="number" id="topUpAmount" placeholder="Enter amount to top up">
-            <button>Top Up</button>
+        <!-- Form States -->
+        <div class="form-container hidden" id="topupForm">
+            <form method="POST" action="{% url 'topup' %}">
+                {% csrf_token %}
+                <label for="topUpAmount">Amount:</label>
+                <input type="number" id="topUpAmount" name="amount" placeholder="Enter amount to top up" required>
+                <button type="submit">Top Up</button>
+            </form>
         </div>
 
-        <!-- State 2: Service Payment -->
-        <div id="serviceForm" class="form-section hidden">
-            <label for="serviceSession">Service Session:</label>
-            <select id="serviceSession">
-                <option value="service1">Service 1</option>
-                <option value="service2">Service 2</option>
-                <option value="service3">Service 3</option>
-            </select>
-            <label for="servicePrice">Service Price:</label>
-            <input type="text" id="servicePrice" value="$100" disabled>
-            <button>Purchase</button>
+        <div class="form-container hidden" id="serviceForm">
+            <form method="POST" action="{% url 'service_payment' %}">
+                {% csrf_token %}
+                <label for="serviceSession">Service Session:</label>
+                <select id="serviceSession" name="service_id" required>
+                    <option value="1">Service 1</option>
+                    <option value="2">Service 2</option>
+                    <option value="3">Service 3</option>
+                </select>
+                <label for="servicePrice">Price:</label>
+                <input type="text" id="servicePrice" name="price" value="100000" readonly>
+                <button type="submit">Purchase</button>
+            </form>
         </div>
 
-        <!-- State 3: Transfer -->
-        <div id="transferForm" class="form-section hidden">
-            <label for="recipientPhone">Recipient's Phone Number:</label>
-            <input type="text" id="recipientPhone" placeholder="Enter recipient's phone number">
-            <label for="transferAmount">Amount:</label>
-            <input type="number" id="transferAmount" placeholder="Enter transfer amount">
-            <button>Purchase</button>
+        <div class="form-container hidden" id="transferForm">
+            <form method="POST" action="{% url 'transfer' %}">
+                {% csrf_token %}
+                <label for="recipientPhone">Recipient's Phone Number:</label>
+                <input type="text" id="recipientPhone" name="recipient_phone" placeholder="Enter recipient's phone number" required>
+                <label for="transferAmount">Amount:</label>
+                <input type="number" id="transferAmount" name="amount" placeholder="Enter transfer amount" required>
+                <button type="submit">Transfer</button>
+            </form>
         </div>
 
-        <!-- State 4: Withdrawal -->
-        <div id="withdrawalForm" class="form-section hidden">
-            <label for="bankName">Bank Name:</label>
-            <select id="bankName">
-                <option value="gopay">GoPay</option>
-                <option value="ovo">OVO</option>
-                <option value="bca">Virtual Account BCA</option>
-                <option value="bni">BNI</option>
-                <option value="mandiri">Mandiri</option>
-            </select>
-            <label for="bankAccount">Account Number:</label>
-            <input type="text" id="bankAccount" placeholder="Enter bank account number">
-            <label for="withdrawalAmount">Amount:</label>
-            <input type="number" id="withdrawalAmount" placeholder="Enter withdrawal amount">
-            <button>Purchase</button>
+        <div class="form-container hidden" id="withdrawalForm">
+            <form method="POST" action="{% url 'withdrawal' %}">
+                {% csrf_token %}
+                <label for="bankName">Bank Name:</label>
+                <select id="bankName" name="bank_name" required>
+                    <option value="gopay">GoPay</option>
+                    <option value="ovo">OVO</option>
+                    <option value="bca">Virtual Account BCA</option>
+                    <option value="bni">BNI</option>
+                    <option value="mandiri">Mandiri</option>
+                </select>
+                <label for="bankAccount">Account Number:</label>
+                <input type="text" id="bankAccount" name="account_number" placeholder="Enter bank account number" required>
+                <label for="withdrawalAmount">Amount:</label>
+                <input type="number" id="withdrawalAmount" name="amount" placeholder="Enter withdrawal amount" required>
+                <button type="submit">Withdraw</button>
+            </form>
         </div>
     </div>
 
     <script>
         function switchForm() {
             // Hide all forms
-            document.getElementById('topupForm').classList.add('hidden');
-            document.getElementById('serviceForm').classList.add('hidden');
-            document.getElementById('transferForm').classList.add('hidden');
-            document.getElementById('withdrawalForm').classList.add('hidden');
+            document.querySelectorAll('.form-container').forEach(form => {
+                form.classList.add('hidden');
+            });
 
             // Show selected form
             const selectedType = document.getElementById('transactionType').value;
-            if (selectedType === 'topup') {
-                document.getElementById('topupForm').classList.remove('hidden');
-            } else if (selectedType === 'service') {
-                document.getElementById('serviceForm').classList.remove('hidden');
-            } else if (selectedType === 'transfer') {
-                document.getElementById('transferForm').classList.remove('hidden');
-            } else if (selectedType === 'withdrawal') {
-                document.getElementById('withdrawalForm').classList.remove('hidden');
+            if (selectedType) {
+                document.getElementById(selectedType + 'Form').classList.remove('hidden');
+            }
+        }
+    </script>
+    <script>
+        function showRelevantFields() {
+            document.getElementById('topupFields').classList.add('hidden');
+            document.getElementById('withdrawalFields').classList.add('hidden');
+            document.getElementById('transferFields').classList.add('hidden');
+
+            const transactionType = document.getElementById('transactionType').value;
+
+            if (transactionType === 'topup') {
+                document.getElementById('topupFields').classList.remove('hidden');
+            } else if (transactionType === 'withdrawal') {
+                document.getElementById('withdrawalFields').classList.remove('hidden');
+            } else if (transactionType === 'transfer') {
+                document.getElementById('transferFields').classList.remove('hidden');
             }
         }
     </script>

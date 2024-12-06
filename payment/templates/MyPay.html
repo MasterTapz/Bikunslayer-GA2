@@ -1,3 +1,4 @@
+<pre>{{ transactions|safe }}</pre>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,13 +10,36 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             background-color: #f9f9f9;
         }
 
+        /* Navbar styles */
+        .navbar {
+            width: 100%;
+            background-color: #007BFF;
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+
+        /* Main container styles */
         .container {
             width: 80%;
             max-width: 600px;
@@ -23,6 +47,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border-radius: 10px;
             overflow: hidden;
+            margin: 100px auto 0;
         }
 
         .header {
@@ -48,20 +73,39 @@
             padding: 20px;
         }
 
+        .transaction-history h3 {
+            margin-bottom: 10px;
+        }
+
+        .transaction-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
         .transaction-item {
             display: flex;
             justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
             align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .transaction-item:last-child {
-            border-bottom: none;
         }
 
         .transaction-item span {
+            width: 30%;
+            text-align: center;
             font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .transaction-item span:first-child {
+            color: green; /* Positive amounts */
+        }
+
+        .transaction-item span:first-child.negative {
+            color: red; /* Negative amounts */
         }
 
         .button {
@@ -71,106 +115,62 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-left: 10px;
         }
 
         .button:hover {
             background-color: #0056b3;
         }
 
-        #transactionForm {
-            display: none;
-            padding: 20px;
-        }
-
-        label {
-            display: block;
-            margin-top: 10px;
-        }
-
-        input, select, button {
-            margin-top: 5px;
-            padding: 10px;
-            width: 100%;
-            box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+        .button-container {
+            display: flex;
+            align-items: center;
         }
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    {% if request.session.user_role == "worker" %}
+        {% include "worker_navbar.html" %}
+    {% elif request.session.user_role == "user" %}
+        {% include "user_navbar.html" %}
+    {% else %}
+        {% include "guest_navbar.html" %}
+    {% endif %}
 
-<div class="container">
-    <div class="header">
-        <div>
-            <span>Phone Number: <strong>+123456789</strong></span>
-            <span class="balance">Balance: $<span id="balance">1000</span></span>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <span>Phone Number: <strong>{{ phone_number }}</strong></span>
+                <span class="balance">Balance: Rp<span>{{ balance }}</span></span>
+            </div>
+            <div class="button-container">
+                <button class="button" onclick="location.href='/mypay/transaction/'">Transact</button>
+            </div>
         </div>
-        <button class="button" onclick="openTransactionForm()">Transact</button>
+
+        <div class="transaction-history">
+            <h3>Transaction History</h3>
+            {% if transactions %}
+                <div class="transaction-list">
+                    {% for transaction in transactions %}
+                        <div class="transaction-item">
+                            <!-- Display nominal with appropriate class -->
+                            <span class="{% if transaction.nominal < 0 %}negative{% else %}positive{% endif %}">
+                                {% if transaction.nominal < 0 %}-{% endif %} Rp {{ transaction.nominal|floatformat:2 }}
+                            </span>
+                            <!-- Display formatted date -->
+                            <span>{{ transaction.date }}</span>
+                            <!-- Display category -->
+                            <span>{{ transaction.category }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>No transactions found.</p>
+            {% endif %}
+        </div>        
     </div>
-
-    <div class="transaction-history">
-        <h3>Transaction History</h3>
-        <div id="transactionList"></div>
-    </div>
-</div>
-
-<div id="transactionForm">
-    <h3>Create Transaction</h3>
-    <label for="transactionAmount">Amount:</label>
-    <input type="number" id="transactionAmount">
-    <label for="transactionType">Type:</label>
-    <select id="transactionType">
-        <option value="Deposit">Deposit</option>
-        <option value="Withdrawal">Withdrawal</option>
-    </select>
-    <button class="button" onclick="createTransaction()">Submit</button>
-    <button class="button" style="background-color: #dc3545;" onclick="closeTransactionForm()">Cancel</button>
-</div>
-
-<script>
-    const transactions = [];
-
-    function openTransactionForm() {
-        document.getElementById('transactionForm').style.display = 'block';
-    }
-
-    function closeTransactionForm() {
-        document.getElementById('transactionForm').style.display = 'none';
-    }
-
-    function createTransaction() {
-        const amount = parseFloat(document.getElementById('transactionAmount').value);
-        const type = document.getElementById('transactionType').value;
-        const balanceElement = document.getElementById('balance');
-        let balance = parseFloat(balanceElement.textContent);
-
-        if (type === "Deposit") {
-            balance += amount;
-        } else if (type === "Withdrawal" && balance >= amount) {
-            balance -= amount;
-        } else {
-            alert("Insufficient balance");
-            return;
-        }
-
-        balanceElement.textContent = balance;
-        transactions.push({ amount, type, date: new Date().toLocaleDateString() });
-        updateTransactionHistory();
-        closeTransactionForm();
-    }
-
-    function updateTransactionHistory() {
-        const transactionList = document.getElementById('transactionList');
-        transactionList.innerHTML = '';
-        transactions.forEach(t => {
-            transactionList.innerHTML += `
-                <div class="transaction-item">
-                    <span>${t.type}: $${t.amount}</span>
-                    <span>Date: ${t.date}</span>
-                </div>`;
-        });
-    }
-</script>
-
 </body>
 </html>
