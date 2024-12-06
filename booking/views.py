@@ -69,8 +69,6 @@ def view_subcategory_detail(request, subcategory_id):
 
 
 
-from django.shortcuts import get_object_or_404
-from django.db import connection
 
 def view_subcategory_detail_worker(request, subcategory_id, worker_id):
     """
@@ -112,11 +110,15 @@ def view_subcategory_detail_worker(request, subcategory_id, worker_id):
         cursor.execute(sessions_query, [subcategory_id])
         sessions = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
 
+    # Fetch other workers doing the same job
+    other_workers = fetch_other_workers(subcategory_id, worker_id)
+
     context = {
         'subcategory': subcategory,
         'worker': worker,
         'is_joined': is_joined,
         'sessions': sessions,
+        'other_workers': other_workers,  # Added
     }
     return render(request, 'subcategory_detail_worker.html', context)
 
@@ -284,6 +286,21 @@ def fetch_testimoni(subcategory_id):
     """
     with connection.cursor() as cursor:
         cursor.execute(query, [subcategory_id])
+        columns = [col[0] for col in cursor.description]
+        rows = cursor.fetchall()
+    return [dict(zip(columns, row)) for row in rows]
+
+def fetch_other_workers(subcategory_id, current_worker_id):
+    query = """
+        SELECT DISTINCT u.Name AS workername, w.BankName, w.Rate
+        FROM worker w
+        JOIN users u ON w.Id = u.Id
+        JOIN worker_service_category wsc ON w.Id = wsc.WorkerId
+        JOIN service_subcategory ss ON wsc.ServiceCategoryId = ss.ServiceCategoryId
+        WHERE ss.Id = %s AND w.Id != %s
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(query, [subcategory_id, current_worker_id])
         columns = [col[0] for col in cursor.description]
         rows = cursor.fetchall()
     return [dict(zip(columns, row)) for row in rows]

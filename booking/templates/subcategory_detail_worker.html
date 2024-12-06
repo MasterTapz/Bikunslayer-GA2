@@ -7,6 +7,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
+
+    <!-- Navbar Section -->
+    {% if request.session.user_role == "worker" %}
+        {% include "worker_navbar.html" %}
+    {% elif request.session.user_role == "user" %}
+        {% include "user_navbar.html" %}
+    {% else %}
+        {% include "guest_navbar.html" %}
+    {% endif %}
+
     <div class="container mx-auto px-4 py-8 bg-white shadow-md rounded-md">
 
         <!-- Header Section -->
@@ -40,6 +50,26 @@
                         {% csrf_token %}
                         <button class="bg-blue-500 text-white rounded-md px-4 py-2 mt-4">Join Subcategory</button>
                     </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Other Workers Doing This Job -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Workers Currently Doing This Job</h2>
+            <div class="space-y-4">
+                {% if other_workers %}
+                    {% for other_worker in other_workers %}
+                        <div class="flex items-center bg-gray-50 shadow-md rounded-md px-4 py-3">
+                            <div>
+                                <p class="font-semibold text-lg">{{ other_worker.workername }}</p>
+                                <p class="text-gray-500">Bank: {{ other_worker.bankname }}</p>
+                                <p class="text-gray-500">Rating: {{ other_worker.rate }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500">No other workers are currently assigned to this subcategory.</p>
                 {% endif %}
             </div>
         </div>
