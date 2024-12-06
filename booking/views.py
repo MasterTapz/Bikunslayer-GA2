@@ -203,22 +203,35 @@ def fetch_worker_by_id(worker_id):
     return dict(zip(columns, row)) if row else None
 
 
+from django.shortcuts import redirect
+from django.http import HttpResponse
+
 def join_subcategory(request, subcategory_id, worker_id):
     """
-    Adds the worker to the subcategory.
+    Adds the worker to the subcategory by inserting into the worker_service_category table.
     """
-    query = """
-        INSERT INTO worker_service_category (WorkerId, ServiceCategoryId)
-        SELECT %s, sc.Id
-        FROM service_category sc
-        JOIN service_subcategory ss ON ss.ServiceCategoryId = sc.Id
-        WHERE ss.Id = %s
-        ON CONFLICT DO NOTHING
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(query, [worker_id, subcategory_id])
+    if request.method == "POST":
+        # Query to find the service category ID from the subcategory ID
+        get_service_category_id_query = """
+            SELECT ServiceCategoryId FROM service_subcategory WHERE Id = %s
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(get_service_category_id_query, [subcategory_id])
+            service_category_id = cursor.fetchone()
 
-    return HttpResponseRedirect(reverse('subcategory_detail_worker', args=[subcategory_id, worker_id]))
+            if service_category_id:
+                # Insert into worker_service_category
+                insert_query = """
+                    INSERT INTO worker_service_category (WorkerId, ServiceCategoryId)
+                    VALUES (%s, %s)
+                    ON CONFLICT DO NOTHING
+                """
+                cursor.execute(insert_query, [worker_id, service_category_id[0]])
+                return redirect('subcategory_detail_worker', subcategory_id=subcategory_id, worker_id=worker_id)
+            else:
+                return HttpResponse("Invalid subcategory ID", status=400)
+    return HttpResponse("Invalid request method", status=405)
+
 
 
 def leave_subcategory(request, subcategory_id, worker_id):
