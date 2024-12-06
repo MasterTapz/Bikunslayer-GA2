@@ -9,8 +9,9 @@ urlpatterns = [
     path('api/vouchers/', views.get_vouchers, name='get_vouchers'),
     path('api/promotions/', views.get_promotions, name='get_promotions'),
     path('api/testimonials/', views.get_testimonials, name='get_testimonials'),
-    path('purchase-voucher', views.purchase_voucher, name='purchase-voucher'),
+    path('purchase-voucher/', views.purchase_voucher, name='purchase-voucher'),
     path('create-testimonial/', views.create_testimonial, name='create-testimonial'),
+  
     
 
 

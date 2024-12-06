@@ -117,9 +117,40 @@
                     </select>
         
                     <!-- Select Discount Code -->
+                    <!-- Discount Code (Optional) -->
+                    <!-- Discount Code Section -->
                     <label for="discountCode" class="block text-gray-700 font-semibold">Discount Code (Optional):</label>
-                    <input type="text" id="discountCode" name="discountCode" placeholder="Enter discount code" class="w-full border rounded-md p-2 mb-4">
-        
+                    <select id="discountCode" name="discountCode" class="w-full border rounded-md p-2 mb-4" onchange="applyDiscount()">
+                        <option value="" selected disabled>Select a discount code (optional)</option>
+                        {% if user_vouchers %}
+                            {% for voucher in user_vouchers %}
+                                <option value="{{ voucher.voucher_code }}" data-discount="{{ voucher.discount_percentage }}">
+                                    {{ voucher.voucher_code }} - {{ voucher.discount_percentage }}% off
+                                </option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="" disabled>No vouchers available</option>
+                        {% endif %}
+                    </select>
+
+                    <!-- Promo Code -->
+                    <!-- Promo Code Section -->
+                    <!-- Promo Code Section -->
+                    <!-- Promo Code -->
+ 
+                    <label for="promoCode" class="block text-gray-700 font-semibold">Promo Code (Optional):</label>
+                    <select id="promoCode" name="promoCode" class="w-full border rounded-md p-2 mb-4" onchange="applyPromo()">
+                        <option value="" selected>Select a promo code (optional)</option>
+                        {% for promo in promotions %}
+                            <option value="{{ promo.code }}" 
+                                    data-promo-discount="{{ promo.discount }}" 
+                                    data-min-order="{{ promo.min_transaction_order }}">
+                                {{ promo.code }} - {{ promo.discount }}% off (Valid until {{ promo.offer_end_date }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    
+
                     <!-- Select Payment Method -->
                     <label for="paymentMethodId" class="block text-gray-700 font-semibold">Select Payment Method:</label>
                     <select id="paymentMethodId" name="paymentMethodId" required class="w-full border rounded-md p-2 mb-4">
@@ -151,7 +182,10 @@
     </div>
 
     <!-- JavaScript for Modal -->
+    <!-- Updated JavaScript -->
     <script>
+
+        
         function openModal(session, price) {
             // Populate modal content
             document.getElementById('modalSession').textContent = session;
@@ -160,6 +194,13 @@
             // Assign values to hidden inputs
             document.getElementById('sessionInput').value = session;
             document.getElementById('priceInput').value = price;
+
+            // Reset discount selection
+            const discountDropdown = document.getElementById('discountCode');
+            discountDropdown.value = "";
+
+            // Reset price display to original price
+            document.getElementById('modalPrice').textContent = price;
 
             // Set the form action dynamically
             const subcategoryId = "{{ subcategory.id }}";
@@ -174,6 +215,76 @@
             // Hide the modal
             document.getElementById('bookingModal').classList.add('hidden');
         }
+
+        function applyDiscount() {
+            const discountDropdown = document.getElementById('discountCode');
+            const discountPercentage = discountDropdown.options[discountDropdown.selectedIndex]?.getAttribute("data-discount");
+
+            const priceElement = document.getElementById('modalPrice'); // The price span in the modal
+            const originalPrice = parseFloat(document.getElementById('priceInput').value); // Original price (stored in hidden input)
+
+            if (discountPercentage) {
+                // Calculate the new price after applying the discount
+                const discountedPrice = originalPrice - (originalPrice * (parseFloat(discountPercentage) / 100));
+
+                // Update the price in the modal
+                priceElement.textContent = discountedPrice.toFixed(2);
+            } else {
+                // If no discount is selected, revert to original price
+                priceElement.textContent = originalPrice.toFixed(2);
+            }
+        }
+        function applyPromo() {
+            const promoDropdown = document.getElementById('promoCode');
+            const selectedOption = promoDropdown.options[promoDropdown.selectedIndex];
+
+            // Ensure an option is selected
+            if (!selectedOption || !selectedOption.hasAttribute('data-promo-discount')) {
+                console.log("No valid promo code selected.");
+                return;
+            }
+
+            // Extract promo discount and minimum order attributes safely
+            const promoDiscount = parseFloat(selectedOption.getAttribute("data-promo-discount") || 0);
+            const minOrder = parseFloat(selectedOption.getAttribute("data-min-order") || 0);
+
+            const priceElement = document.getElementById('modalPrice'); // The price span in the modal
+            const originalPrice = parseFloat(document.getElementById('priceInput').value); // Original price
+
+            console.log("Original Price:", originalPrice);
+            console.log("Promo Discount:", promoDiscount);
+            console.log("Minimum Order:", minOrder);
+
+            if (isNaN(originalPrice) || originalPrice <= 0) {
+                alert("Invalid original price. Please try again.");
+                return;
+            }
+
+            if (originalPrice >= minOrder) {
+                // Calculate the new price after applying the promo discount
+                const discountedPrice = originalPrice - (originalPrice * (promoDiscount / 100));
+                console.log("Discounted Price:", discountedPrice);
+
+                // Update the price in the modal
+                priceElement.textContent = discountedPrice.toFixed(2);
+                document.getElementById('priceInput').value = discountedPrice.toFixed(2); // Sync hidden input
+            } else {
+                alert(`This promo requires a minimum order of $${minOrder.toFixed(2)}.`);
+                promoDropdown.value = ""; // Reset promo dropdown if not applicable
+                priceElement.textContent = originalPrice.toFixed(2); // Reset to original price
+                document.getElementById('priceInput').value = originalPrice.toFixed(2); // Sync hidden input
+            }
+        }
+
+
+
+
+
+
+
+
+
+
     </script>
 
 </body>
