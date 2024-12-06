@@ -11,6 +11,21 @@
   <div class="fixed w-full bg-gray-800 text-white shadow-md z-10">
     {% include 'worker_navbar.html' %}
   </div>
+  {% if messages %}
+  <div id="message-container" class="fixed top-16 left-1/2 transform -translate-x-1/2 z-20">
+    {% for message in messages %}
+      <div
+        class="mb-2 p-4 rounded-md text-white shadow-lg 
+        {% if message.tags == 'error' %}
+          bg-red-500
+        {% elif message.tags == 'success' %}
+          bg-green-500
+        {% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <div class="pt-20 p-8">
     <h2 class="text-xl font-semibold mb-4">Worker Profile</h2>
@@ -110,6 +125,13 @@
     document.getElementById("showWorkerForm").addEventListener("click", function () {
       document.getElementById("workerForm").classList.toggle("hidden");
     });
+    // Automatically hide messages after 1 second
+    setTimeout(() => {
+      const messageContainer = document.getElementById("message-container");
+      if (messageContainer) {
+        messageContainer.style.display = "none";
+      }
+    }, 1000);
   </script>
 </body>
 </html>
