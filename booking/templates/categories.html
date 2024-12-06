@@ -41,6 +41,8 @@
         {% include "worker_navbar.html" %}
     {% elif request.session.user_role == "user" %}
         {% include "user_navbar.html" %}
+    {% elif request.session.user_role == "customer" %}
+        {% include "user_navbar.html" %}
     {% else %}
         <!-- Default or guest navbar -->
         {% include "guest_navbar.html" %}
