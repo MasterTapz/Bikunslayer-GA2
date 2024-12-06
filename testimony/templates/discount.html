@@ -2,28 +2,177 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discounts</title>
+    <title>Available Discounts</title>
+    <style>
+        /* Common Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 50px auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333333;
+        }
+        .discount-section {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .discount-section .column {
+            flex: 1;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .discount-section .column h2 {
+            margin-top: 0;
+        }
+        .discount-item {
+            border-bottom: 1px solid #dddddd;
+            padding: 15px 0;
+        }
+        .discount-item:last-child {
+            border-bottom: none;
+        }
+        .discount-type {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .discount-details p {
+            margin: 5px 0;
+        }
+        .buy-button {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .buy-button:hover {
+            background-color: #0056b3;
+        }
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .discount-section {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Discount Section -->
-    <div style="border: 1px solid #ddd; padding: 20px; margin: 20px;">
-        <h2>Available Discounts</h2>
-        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
-            <h3>Voucher</h3>
-            <p>Code: <span>VCH123</span></p>
-            <p>Discount: <span>10%</span></p>
-            <p>Min Transaction Order: <span>$50</span></p>
-            <p>Validity Days: <span>30</span></p>
-            <p>User Quota: <span>10</span></p>
-            <p>Price: <span>$5</span> <button>Buy</button></p>
-        </div>
-
-        <div style="border: 1px solid #ddd; padding: 10px; margin: 10px 0;">
-            <h3>Promotions</h3>
-            <p>Code: <span>PRM456</span></p>
-            <p>Offer End Date: <span>DD/MM/YYYY</span></p>
+    <div class="container">
+        <h1>Available Discounts</h1>
+        <div class="discount-section">
+            <!-- Vouchers Section -->
+            <div class="column">
+                <h2>Discounts</h2>
+                <div id="vouchers"></div>
+            </div>
+            <!-- Promotions Section -->
+            <div class="column">
+                <h2>Promotions</h2>
+                <div id="promotions"></div>
+            </div>
         </div>
     </div>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); z-index: 1000;">
+        <h3>Select Payment Method</h3>
+        <select id="payment-method">
+            <option value="MyPay">MyPay</option>
+            <option value="Other">Other</option>
+        </select>
+        <button id="confirm-purchase">Confirm</button>
+        <button onclick="closeModal()">Cancel</button>
+    </div>
+
+    <script>
+        let selectedVoucherCode = null;
+
+        // Fetch Vouchers
+        fetch('/api/vouchers/')
+            .then(response => response.json())
+            .then(data => {
+                const vouchersDiv = document.getElementById('vouchers');
+                data.vouchers.forEach(voucher => {
+                    const voucherItem = document.createElement('div');
+                    voucherItem.className = 'discount-item';
+                    voucherItem.innerHTML = `
+                        <div class="discount-type">Code: <strong>${voucher.code}</strong></div>
+                        <div class="discount-details">
+                            <p><strong>Discount:</strong> ${voucher.discount}%</p>
+                            <p><strong>Min Tr. Order:</strong> $${voucher.mintrorder}</p>
+                        </div>
+                        <button class="buy-button" onclick="openModal('${voucher.code}')">Buy Voucher</button>
+                    `;
+                    vouchersDiv.appendChild(voucherItem);
+                });
+            })
+            .catch(error => console.error('Error fetching vouchers:', error));
+
+        // Fetch Promotions
+        fetch('/api/promotions/')
+            .then(response => response.json())
+            .then(data => {
+                const promotionsDiv = document.getElementById('promotions');
+                data.promotions.forEach(promo => {
+                    const promoItem = document.createElement('div');
+                    promoItem.className = 'discount-item';
+                    promoItem.innerHTML = `
+                        <div class="discount-type">Code: <strong>${promo.code}</strong></div>
+                        <div class="discount-details">
+                            <p><strong>Discount:</strong> ${promo.discount}%</p>
+                            <p><strong>Min Order:</strong> $${promo.mintrorder}</p>
+                            <p><strong>Offer Ends:</strong> ${promo.offerenddate}</p>
+                        </div>
+                    `;
+                    promotionsDiv.appendChild(promoItem);
+                });
+            })
+            .catch(error => console.error('Error fetching promotions:', error));
+
+        // Function to open the modal and set selected voucher
+        function openModal(code) {
+            selectedVoucherCode = code;
+            document.getElementById('payment-modal').style.display = 'block';
+        }
+
+        // Function to close the modal
+        function closeModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        // Handle purchase confirmation
+        document.getElementById('confirm-purchase').addEventListener('click', () => {
+            const paymentMethod = document.getElementById('payment-method').value;
+
+            fetch('/purchase-voucher', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: selectedVoucherCode, paymentMethod }),
+            })
+                .then(response => response.json())
+                .then(data => {
+                    closeModal();
+                    alert(data.success ? 'Voucher purchased successfully!' : 'Purchase failed: ' + data.message);
+                })
+                .catch(error => console.error('Error during purchase:', error));
+        });
+    </script>
 </body>
 </html>

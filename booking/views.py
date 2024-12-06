@@ -57,11 +57,13 @@ def view_subcategory_detail(request, subcategory_id):
     
     # Fetch all workers associated with the subcategory
     workers = fetch_workers(subcategory_id)
+    testimonials = fetch_testimonials_by_subcategory(subcategory_id)
     
     context = {
         'subcategory': subcategory,
         'sessions': sessions,
         'workers': workers,  
+        'testimonials': testimonials,  
     }
     return render(request, 'subcategory_detail.html', context)
 
@@ -286,3 +288,41 @@ def fetch_testimoni(subcategory_id):
         rows = cursor.fetchall()
     return [dict(zip(columns, row)) for row in rows]
 
+
+def fetch_testimonials(subcategory_id):
+    """
+    Fetch testimonials for workers associated with a specific subcategory.
+    """
+    testimonials_query = """
+        SELECT t.username, t.comment, t.rating, u.Name AS workername
+        FROM testimonial t
+        JOIN users u ON t.worker_id = u.Id
+        WHERE t.worker_id IN (
+            SELECT wsc.WorkerId
+            FROM worker_service_category wsc
+            JOIN service_subcategory ss ON ss.ServiceCategoryId = wsc.ServiceCategoryId
+            WHERE ss.Id = %s
+        )
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(testimonials_query, [subcategory_id])
+        testimonials = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+    return testimonials
+
+def fetch_testimonials_by_subcategory(subcategory_id):
+    """
+    Fetch testimonials for workers associated with a specific subcategory, sorted by rating (highest to lowest).
+    """
+    testimonials_query = """
+        SELECT t.date, t.text AS comment, t.rating, u.name AS username, w.id AS worker_id, w.rate AS worker_rating
+        FROM testimoni t
+        JOIN tr_service_order tso ON t.servicetrid = tso.id
+        JOIN worker w ON tso.workerid = w.id
+        JOIN users u ON w.id = u.id
+        WHERE tso.servicesubcategoryid = %s
+        ORDER BY t.rating DESC;
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(testimonials_query, [subcategory_id])
+        testimonials = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+    return testimonials

@@ -21,6 +21,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('',include('main.urls')),
     path('',include('booking.urls')),
+    path('',include('testimony.urls')),
 
 
 

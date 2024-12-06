@@ -2,44 +2,177 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voucher Purchase</title>
+    <title>Available Vouchers</title>
+    <style>
+        /* Styles for the voucher page */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333333;
+        }
+        .voucher-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .voucher-item {
+            border-bottom: 1px solid #dddddd;
+            padding: 20px 0;
+        }
+        .voucher-item:last-child {
+            border-bottom: none;
+        }
+        .voucher-details {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        .voucher-details p {
+            flex: 1 1 45%;
+            margin: 5px 0;
+        }
+        .buy-button {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 10px 20px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .buy-button:hover {
+            background-color: #0056b3;
+        }
+        .modal {
+            display: none;
+            border: 1px solid #dddddd;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            text-align: left;
+        }
+        .modal h3 {
+            margin-top: 0;
+        }
+        .success {
+            border-color: #28a745;
+            color: #155724;
+            background-color: #d4edda;
+        }
+        .failure {
+            border-color: #dc3545;
+            color: #721c24;
+            background-color: #f8d7da;
+        }
+        .close-button {
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 8px 15px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .close-button:hover {
+            background-color: #0056b3;
+        }
+        /* Additional styles for responsiveness */
+        @media (max-width: 600px) {
+            .voucher-details p {
+                flex: 1 1 100%;
+            }
+            .buy-button {
+                width: 100%;
+                margin-top: 10px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Voucher Purchase Section -->
-    <div style="border: 1px solid #ddd; padding: 20px; margin: 20px;">
-        <h2>Purchase Voucher</h2>
-        <button id="buyButton">Buy Voucher</button>
-        
-        <!-- Success Modal -->
-        <div id="successModal" style="display: none; border: 1px solid #4CAF50; padding: 10px; margin-top: 10px;">
-            <h3 style="color: #4CAF50;">Success</h3>
-            <p>Congrats! You have successfully bought a voucher with the code XXXX.</p>
-            <p>This voucher can be used until XX/XX/XXXX with X number of usage quota.</p>
-            <button onclick="closeModal('successModal')">Close</button>
+    <div class="container">
+        <h1>Available Vouchers</h1>
+        <div id="voucher-list" class="voucher-list">
+            <!-- Vouchers will be loaded here -->
         </div>
-
+        <!-- Success Modal -->
+        <div id="successModal" class="modal success">
+            <h3>Success</h3>
+            <p id="successMessage"></p>
+            <button onclick="closeModal('successModal')" class="close-button">Close</button>
+        </div>
         <!-- Failure Modal -->
-        <div id="failureModal" style="display: none; border: 1px solid #f44336; padding: 10px; margin-top: 10px;">
-            <h3 style="color: #f44336;">Failed</h3>
-            <p>Sorry, your balance is not enough to buy this voucher.</p>
-            <button onclick="closeModal('failureModal')">Close</button>
+        <div id="failureModal" class="modal failure">
+            <h3>Failed</h3>
+            <p id="failureMessage"></p>
+            <button onclick="closeModal('failureModal')" class="close-button">Close</button>
         </div>
     </div>
-
     <script>
-        document.getElementById("buyButton").addEventListener("click", function() {
-            let balanceSufficient = true; // Change this based on balance check logic
+        // Fetch vouchers and display them
+        fetch('/api/vouchers/')
+            .then(response => response.json())
+            .then(data => {
+                const voucherListDiv = document.getElementById('voucher-list');
+                data.vouchers.forEach(voucher => {
+                    const voucherItemDiv = document.createElement('div');
+                    voucherItemDiv.className = 'voucher-item';
+                    voucherItemDiv.innerHTML = `
+                        <div class="voucher-details">
+                            <p><strong>Code:</strong> ${voucher.code}</p>
+                            <p><strong>Price:</strong> $${voucher.price}</p>
+                            <p><strong>Discount:</strong> ${voucher.discount}%</p>
+                            <p><strong>Validity Days:</strong> ${voucher.nmbdayvalid}</p>
+                            <p><strong>User Quota:</strong> ${voucher.userquota}</p>
+                        </div>
+                        <button class="buy-button" onclick="buyVoucher('${voucher.code}', ${voucher.nmb_day_valid}, ${voucher.user_quota})">Buy Voucher</button>
+                    `;
+                    voucherListDiv.appendChild(voucherItemDiv);
+                });
+            })
+            .catch(error => console.error('Error fetching vouchers:', error));
+
+        // Buy voucher function
+        function buyVoucher(code, validityDays, userQuota) {
+            // Simulate balance check and purchase
+            let balanceSufficient = true; // Placeholder, replace with actual balance check logic
 
             if (balanceSufficient) {
+                // Display success modal
+                const expiryDate = calculateExpiryDate(validityDays);
+                document.getElementById("successMessage").innerHTML = `
+                    Congrats! You have successfully bought a voucher with the code <strong>${code}</strong>.<br>
+                    This voucher can be used until <strong>${expiryDate}</strong> with <strong>${userQuota}</strong> number of usage quota.
+                `;
                 document.getElementById("successModal").style.display = "block";
             } else {
+                // Display failure modal
+                document.getElementById("failureMessage").innerText = "Sorry, your balance is not enough to buy this voucher.";
                 document.getElementById("failureModal").style.display = "block";
             }
-        });
+        }
 
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = "none";
+        }
+
+        function calculateExpiryDate(validityDays) {
+            let today = new Date();
+            let expiryDate = new Date();
+            expiryDate.setDate(today.getDate() + validityDays);
+            return expiryDate.toISOString().split('T')[0];
         }
     </script>
 </body>
