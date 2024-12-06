@@ -45,27 +45,64 @@ def fetch_table_ids(table_name, columns):
 
 # View Functions
 
+def book_service(request, subcategory_id, session):
+    """
+    Handle booking a service session.
+    """
+    if request.method == "POST":
+        price = request.POST.get("price")
+        service_date = request.POST.get("serviceDate")
+        service_time = request.POST.get("serviceTime")
+        worker_id = request.POST.get("workerId")
+        discount_code = request.POST.get("discountCode") or None
+        payment_method_id = request.POST.get("paymentMethodId")
+        customer_id = request.session.get("user_id")
+
+        # Insert into TR_SERVICE_ORDER
+        query = """
+            INSERT INTO TR_SERVICE_ORDER (
+                Id, OrderDate, ServiceDate, ServiceTime, CustomerId,
+                WorkerId, ServiceSubCategoryId, Session, TotalPrice,
+                DiscountCode, PaymentMethodId
+            ) VALUES (
+                gen_random_uuid(), CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            )
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(query, [
+                service_date, service_time, customer_id, worker_id, 
+                subcategory_id, session, price, discount_code, payment_method_id
+            ])
+
+        return HttpResponseRedirect(reverse('subcategory_detail', args=[subcategory_id]))
+    return HttpResponse("Invalid request method", status=405)
+
+
+
+
 def view_subcategory_detail(request, subcategory_id):
-    """
-    View for displaying subcategory details, sessions, and associated workers.
-    """
-    # Fetch the subcategory details
     subcategory = fetch_subcategory_by_id(subcategory_id)
-    
-    # Fetch service sessions for the subcategory
     sessions = fetch_service_sessions(subcategory_id)
-    
-    # Fetch all workers associated with the subcategory
     workers = fetch_workers(subcategory_id)
     testimonials = fetch_testimonials_by_subcategory(subcategory_id)
-    
+
+    # Fetch available payment methods
+    payment_methods_query = "SELECT Id, Name FROM PAYMENT_METHOD"
+    with connection.cursor() as cursor:
+        cursor.execute(payment_methods_query)
+        payment_methods = [
+            {"id": row[0], "name": row[1]} for row in cursor.fetchall()
+        ]
+
     context = {
         'subcategory': subcategory,
         'sessions': sessions,
-        'workers': workers,  
-        'testimonials': testimonials,  
+        'workers': workers,
+        'testimonials': testimonials,
+        'payment_methods': payment_methods,
     }
     return render(request, 'subcategory_detail.html', context)
+
 
 
 

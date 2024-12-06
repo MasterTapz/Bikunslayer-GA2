@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import check_all_ids, check_database_connection, join_subcategory, leave_subcategory,view_categories,view_subcategory_detail,view_subcategory_detail_worker
+from .views import book_service, check_all_ids, check_database_connection, join_subcategory, leave_subcategory,view_categories,view_subcategory_detail,view_subcategory_detail_worker
 
 urlpatterns = [
     path('check-db/', check_database_connection),
@@ -9,6 +9,8 @@ urlpatterns = [
     path('check_ids/', check_all_ids, name='check_ids'),
     path('subcategory/<uuid:subcategory_id>/worker/<uuid:worker_id>/join/', join_subcategory, name='join_subcategory'),
     path('subcategory/<uuid:subcategory_id>/worker/<uuid:worker_id>/leave/', leave_subcategory, name='leave_subcategory'),
+    path('book-service/<uuid:subcategory_id>/<int:session>/', book_service, name='book_service'),
+
 
 
 
