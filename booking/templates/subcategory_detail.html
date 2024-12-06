@@ -61,6 +61,24 @@
                 {% endif %}
             </div>
         </div>
+        <!-- Testimonials Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Testimonials</h2>
+            <div class="space-y-4 max-h-96 overflow-y-auto border border-gray-200 rounded-md p-4 bg-gray-50 shadow-inner">
+                {% if testimonials %}
+                    {% for testimony in testimonials %}
+                    <div class="bg-white shadow-md rounded-md p-4 mb-4">
+                        <p><strong>User Name:</strong> {{ testimony.username }}</p>
+                        <p><strong>Comment:</strong> {{ testimony.comment }}</p>
+                        <p><strong>Rating:</strong> {{ testimony.rating }} Stars</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500">No testimonials available for this subcategory.</p>
+                {% endif %}
+            </div>
+        </div>
+
 
     </div>
 </body>
