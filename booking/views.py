@@ -153,7 +153,7 @@ def my_orders(request):
         ]
 
     return render(request, 'MyOrder.html', {'orders': orders})
-
+from django.contrib import messages
 
 def book_service(request, subcategory_id, session):
     """
@@ -226,7 +226,8 @@ def book_service(request, subcategory_id, session):
                     subcategory_id, session, price, discount_code, payment_method_id
                 ])
 
-            return JsonResponse({'success': True, 'message': 'Service booked successfully!'}, status=200)
+            messages.success(request, 'Service booked successfully!')
+            return redirect('subcategory_detail', subcategory_id=subcategory_id)
 
         except Exception as e:
             return JsonResponse({'error': f"An error occurred: {str(e)}"}, status=500)
@@ -549,21 +550,35 @@ def fetch_testimonials(subcategory_id):
 
 def fetch_testimonials_by_subcategory(subcategory_id):
     """
-    Fetch testimonials for workers associated with a specific subcategory, sorted by rating (highest to lowest).
+    Fetch testimonials for workers associated with a specific subcategory,
+    including the creator (customer) of the testimonials, sorted by rating (highest to lowest).
     """
     testimonials_query = """
-        SELECT t.date, t.text AS comment, t.rating, u.name AS username, w.id AS worker_id, w.rate AS worker_rating
+        SELECT 
+            t.date AS testimony_date,
+            t.text AS comment,
+            t.rating AS testimony_rating,
+            uc.name AS customer_name,  -- Fetch customer (testimonial creator) name
+            uw.name AS worker_name,    -- Fetch worker name
+            tso.servicesubcategoryid AS subcategory_id,
+            w.id AS worker_id,
+            w.rate AS worker_rating
         FROM testimoni t
-        JOIN tr_service_order tso ON t.servicetrid = tso.id
-        JOIN worker w ON tso.workerid = w.id
-        JOIN users u ON w.id = u.id
-        WHERE tso.servicesubcategoryid = %s
+        LEFT JOIN tr_service_order tso ON t.servicetrid = tso.id
+        LEFT JOIN worker w ON tso.workerid = w.id
+        LEFT JOIN users uw ON w.id = uw.id -- Join to get worker name
+        LEFT JOIN customer c ON tso.customerid = c.id
+        LEFT JOIN users uc ON c.id = uc.id -- Join to get customer name
+        WHERE tso.servicesubcategoryid = %s OR t.servicetrid = '00000000-0000-0000-0000-000000000000'
         ORDER BY t.rating DESC;
     """
     with connection.cursor() as cursor:
         cursor.execute(testimonials_query, [subcategory_id])
-        testimonials = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
+        testimonials = [
+            dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()
+        ]
     return testimonials
+
 
 
 from django.db import connection
@@ -679,3 +694,135 @@ def fetch_promotions(request):
         cursor.execute(query)
         promotions = [dict(zip([col[0] for col in cursor.description], row)) for row in cursor.fetchall()]
     return JsonResponse({'promotions': promotions})
+
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.db import connection
+
+@csrf_exempt
+def create_testimonial(request):
+    # Step 1: Fetch the logged-in user's details from the session
+    user_id = request.session.get("user_id")  # Dynamically fetched user ID from the session
+    if not user_id:
+        return JsonResponse({'success': False, 'message': 'You must be logged in to submit a testimonial.'})
+
+    if request.method == 'POST':
+        try:
+            # Step 2: Parse request data
+            data = json.loads(request.body)
+            worker_name = data.get('worker')
+            rating = data.get('rating')
+            comment = data.get('comment')
+
+            # Validate inputs
+            if not worker_name or not rating or not comment:
+                return JsonResponse({'success': False, 'message': 'All fields are required.'})
+
+            # Step 3: Fetch the username dynamically using the user_id
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT Name
+                    FROM users
+                    WHERE Id = %s
+                """, [user_id])
+                user_data = cursor.fetchone()
+                if not user_data:
+                    return JsonResponse({'success': False, 'message': 'User not found.'})
+                
+                user_name = user_data[0]  # Get the username dynamically
+
+                # Step 4: Fetch the ServiceTrId for the worker
+                cursor.execute("""
+                    SELECT S.Id
+                    FROM TR_SERVICE_ORDER S
+                    INNER JOIN worker W ON S.workerId = W.Id
+                    INNER JOIN users U ON W.Id = U.Id
+                    WHERE U.Name = %s
+                    ORDER BY S.serviceDate DESC
+                    LIMIT 1
+                """, [worker_name])
+                service_order = cursor.fetchone()
+
+                if not service_order:
+                    return JsonResponse({'success': False, 'message': 'No matching service order found for the worker.'})
+
+                service_tr_id = service_order[0]
+
+                # Step 5: Check if a testimonial already exists for today
+                cursor.execute("""
+                    SELECT COUNT(*)
+                    FROM TESTIMONI
+                    WHERE ServiceTrId = %s AND date = CURRENT_DATE
+                """, [service_tr_id])
+                exists = cursor.fetchone()[0]
+
+                if exists:
+                    return JsonResponse({'success': False, 'message': 'A testimonial for this service order already exists today.'})
+
+                # Step 6: Insert the testimonial into the TESTIMONI table
+                cursor.execute("""
+                    INSERT INTO TESTIMONI (ServiceTrId, date, Text, Rating)
+                    VALUES (%s, CURRENT_DATE, %s, %s)
+                """, [service_tr_id, comment, rating])
+
+            # Step 7: Return success response with dynamic username
+            return JsonResponse({
+                'success': True,
+                'message': 'Testimonial created successfully!',
+                'username': user_name  # Return the dynamic username
+            })
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'})
+
+import uuid
+
+@csrf_exempt
+@csrf_exempt
+def create_testimonial_for_subcategory(request, subcategory_id: uuid.UUID):
+    """
+    Create a testimonial for a specific subcategory.
+    """
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return JsonResponse({'success': False, 'message': 'You must be logged in to create a testimonial.'})
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            comment = data.get('comment')
+            rating = data.get('rating')
+
+            if not comment or not rating:
+                return JsonResponse({'success': False, 'message': 'All fields are required.'})
+
+            with connection.cursor() as cursor:
+                # Fetch the most recent ServiceTrId (if it exists)
+                cursor.execute("""
+                    SELECT Id
+                    FROM TR_SERVICE_ORDER
+                    WHERE CustomerId = %s AND ServiceSubCategoryId = %s
+                    ORDER BY ServiceDate DESC
+                    LIMIT 1
+                """, [user_id, subcategory_id])
+                service_order = cursor.fetchone()
+
+                # Use the ServiceTrId or a placeholder value
+                service_tr_id = service_order[0] if service_order else "00000000-0000-0000-0000-000000000000"
+
+                # Insert the testimonial
+                cursor.execute("""
+                    INSERT INTO TESTIMONI (ServiceTrId, date, Text, Rating)
+                    VALUES (%s, CURRENT_DATE, %s, %s)
+                """, [service_tr_id, comment, rating])
+
+            return JsonResponse({'success': True, 'message': 'Testimonial created successfully!'})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
+
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'})

@@ -14,6 +14,8 @@ urlpatterns = [
     path('my-orders/', my_orders, name='my_orders'),
     path('edit-order/<uuid:order_id>/', edit_order, name='edit_order'),
     path('cancel-order/<uuid:order_id>/', cancel_order, name='cancel_order'),
+    path('create-testimonial/<uuid:subcategory_id>/', views.create_testimonial_for_subcategory, name='create_testimonial_for_subcategory'),
+
 
 
 
