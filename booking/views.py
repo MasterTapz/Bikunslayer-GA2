@@ -132,7 +132,7 @@ def my_orders(request):
         ]
 
     return render(request, 'MyOrder.html', {'orders': orders})
-
+from django.contrib import messages
 
 def book_service(request, subcategory_id, session):
     """
@@ -205,7 +205,8 @@ def book_service(request, subcategory_id, session):
                     subcategory_id, session, price, discount_code, payment_method_id
                 ])
 
-            return JsonResponse({'success': True, 'message': 'Service booked successfully!'}, status=200)
+            messages.success(request, 'Service booked successfully!')
+            return redirect('subcategory_detail', subcategory_id=subcategory_id)
 
         except Exception as e:
             return JsonResponse({'error': f"An error occurred: {str(e)}"}, status=500)
