@@ -74,12 +74,24 @@
     </style>
 </head>
 <body>
+    <!-- Navbar Section -->
+    {% if request.session.user_role == "worker" %}
+        {% include "worker_navbar.html" %}
+    {% elif request.session.user_role == "user" %}
+        {% include "user_navbar.html" %}
+    {% elif request.session.user_role == "customer" %}
+        {% include "user_navbar.html" %}
+    {% else %}
+        <!-- Default or guest navbar -->
+        {% include "guest_navbar.html" %}
+    {% endif %}
+
     <div class="container">
         <h1>Available Discounts</h1>
         <div class="discount-section">
             <!-- Vouchers Section -->
             <div class="column">
-                <h2>Discounts</h2>
+                <h2>Vouchers</h2>
                 <div id="vouchers"></div>
             </div>
             <!-- Promotions Section -->

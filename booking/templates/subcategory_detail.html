@@ -88,16 +88,60 @@
                 {% if testimonials %}
                     {% for testimony in testimonials %}
                     <div class="bg-white shadow-md rounded-md p-4 mb-4">
-                        <p><strong>User Name:</strong> {{ testimony.username }}</p>
+                        <p><strong>User Name:</strong> {{ testimony.customer_name }}</p>
                         <p><strong>Comment:</strong> {{ testimony.comment }}</p>
-                        <p><strong>Rating:</strong> {{ testimony.rating }} Stars</p>
+                        <p><strong>Rating:</strong> {{ testimony.testimony_rating }} Stars</p>
                     </div>
                     {% endfor %}
                 {% else %}
                     <p class="text-gray-500">No testimonials available for this subcategory.</p>
                 {% endif %}
             </div>
+
+            <button
+                class="bg-green-500 text-white rounded-md px-4 py-2 mt-4"
+                onclick="openTestimonialModal()"
+            >
+                Create Testimonial
+            </button>
         </div>
+
+        <div id="testimonialModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-lg w-96 p-6">
+                <h2 class="text-xl font-bold mb-4">Create Testimonial</h2>
+                <form id="testimonialForm">
+                    {% csrf_token %}
+                    <!-- Select Worker -->
+                    <label for="workerId" class="block text-gray-700 font-semibold">Select Worker:</label>
+                    <select id="workerId" name="workerId" required class="w-full border rounded-md p-2 mb-4">
+                        {% for worker in workers %}
+                            <option value="{{ worker.id }}">{{ worker.workername }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <!-- Comment Field -->
+                    <label for="comment" class="block text-gray-700 font-semibold">Comment:</label>
+                    <textarea id="comment" name="comment" required class="w-full border rounded-md p-2 mb-4"></textarea>
+
+                    <!-- Rating Field -->
+                    <label for="rating" class="block text-gray-700 font-semibold">Rating:</label>
+                    <select id="rating" name="rating" required class="w-full border rounded-md p-2 mb-4">
+                        <option value="5">5 Stars</option>
+                        <option value="4">4 Stars</option>
+                        <option value="3">3 Stars</option>
+                        <option value="2">2 Stars</option>
+                        <option value="1">1 Star</option>
+                    </select>
+
+                    <!-- Buttons -->
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" class="bg-gray-500 text-white rounded-md px-4 py-2" onclick="closeTestimonialModal()">Cancel</button>
+                        <button type="submit" class="bg-green-500 text-white rounded-md px-4 py-2">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
 
         <!-- Modal Section -->
         <div id="bookingModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center">
@@ -276,16 +320,42 @@
             }
         }
 
+        function openTestimonialModal() {
+            document.getElementById('testimonialModal').classList.remove('hidden');
+        }
 
+        function closeTestimonialModal() {
+            document.getElementById('testimonialModal').classList.add('hidden');
+        }
 
+        document.getElementById('testimonialForm').addEventListener('submit', function(event) {
+            event.preventDefault();
 
+            const subcategoryId = "{{ subcategory.id }}"; // Pass the subcategory dynamically
+            const workerId = document.getElementById('workerId').value;
+            const comment = document.getElementById('comment').value;
+            const rating = document.getElementById('rating').value;
 
-
-
-
-
-
+            // Make POST request
+            fetch(`/create-testimonial/${subcategoryId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token
+                },
+                body: JSON.stringify({ worker: workerId, comment, rating })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload(); // Reload to update testimonials
+                } else {
+                    alert(data.message); // Show error message
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
     </script>
-
 </body>
 </html>
