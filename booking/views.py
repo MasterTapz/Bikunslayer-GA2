@@ -393,6 +393,7 @@ def get_customer_balance(request):
 def view_subcategory_detail(request, subcategory_id):
     subcategory = fetch_subcategory_by_id(subcategory_id)
     sessions = fetch_service_sessions(subcategory_id)
+    workers = fetch_workers(subcategory_id)  # Fetch all workers for this subcategory
     testimonials = fetch_testimonials_by_subcategory(subcategory_id)
     user_id = request.session.get("user_id")
     user_vouchers = get_user_vouchers(user_id) if user_id else []
@@ -411,12 +412,14 @@ def view_subcategory_detail(request, subcategory_id):
     context = {
         'subcategory': subcategory,
         'sessions': sessions,
+        'workers': workers,
         'testimonials': testimonials,
         'payment_methods': payment_methods,
         "user_vouchers": user_vouchers,
         'promotions': promotions,
     }
     return render(request, 'subcategory_detail.html', context)
+
 
 
 def get_promotions(request):

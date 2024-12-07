@@ -63,6 +63,25 @@
             </div>
         </div>
 
+        <!-- Workers Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Available Workers</h2>
+            <div class="grid grid-cols-2 gap-4">
+                {% if workers %}
+                    {% for worker in workers %}
+                    <div class="bg-gray-50 shadow-md rounded-md p-4">
+                        <p class="font-semibold">Worker: {{ worker.workername }}</p>
+                        <p>Bank: {{ worker.bankname }}</p>
+                        <p>Rating: {{ worker.rate }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500">No workers available for this subcategory.</p>
+                {% endif %}
+            </div>
+        </div>
+
+
         <!-- Testimonials Section -->
         <div class="mb-8">
             <h2 class="text-xl font-semibold mb-4">Testimonials</h2>
@@ -88,13 +107,25 @@
             </button>
         </div>
 
-        <!-- Testimonial Modal (No Worker Selection) -->
+        <!-- Testimonial Modal with Worker Selection -->
         <div id="testimonialModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center">
             <div class="bg-white rounded-lg shadow-lg w-96 p-6">
                 <h2 class="text-xl font-bold mb-4">Create Testimonial</h2>
                 <form id="testimonialForm">
                     {% csrf_token %}
-                    
+
+                    <!-- Select Worker -->
+                    <label for="workerId" class="block text-gray-700 font-semibold">Select Worker:</label>
+                    <select id="workerId" name="workerId" required class="w-full border rounded-md p-2 mb-4">
+                        {% if workers %}
+                            {% for worker in workers %}
+                                <option value="{{ worker.id }}">{{ worker.workername }}</option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="" disabled>No workers available</option>
+                        {% endif %}
+                    </select>
+
                     <!-- Comment Field -->
                     <label for="comment" class="block text-gray-700 font-semibold">Comment:</label>
                     <textarea id="comment" name="comment" required class="w-full border rounded-md p-2 mb-4"></textarea>
@@ -117,6 +148,7 @@
                 </form>
             </div>
         </div>
+
 
         <!-- Booking Modal (No Worker Selection) -->
         <div id="bookingModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center">
