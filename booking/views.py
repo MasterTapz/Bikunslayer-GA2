@@ -3,6 +3,11 @@ from django.db import connection
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from datetime import datetime
+import uuid
+from django.views.decorators.csrf import csrf_exempt  
+from decimal import Decimal
+
+
 
 # Checking Functions
 
@@ -56,62 +61,25 @@ def edit_order(request, order_id):
     elif request.method == "POST":
         pass
 
-
+@csrf_exempt
 def cancel_order(request, order_id):
-    if request.method == "POST":
-        query = "UPDATE TR_SERVICE_ORDER SET Status = 'Cancelled' WHERE Id = %s"
-        with connection.cursor() as cursor:
-            cursor.execute(query, [order_id])
-        return JsonResponse({'success': True, 'message': 'Order cancelled successfully!'})
+    if request.method == "DELETE":
+        try:
+            # Log received UUID for debugging
+            print(f"Received DELETE request for order ID (UUID): {order_id}")
+
+            # Ensure the ID is treated as a UUID string in the query
+            query = "DELETE FROM TR_SERVICE_ORDER WHERE Id = %s"
+            with connection.cursor() as cursor:
+                cursor.execute(query, [order_id])
+
+            print(f"Order with ID {order_id} deleted successfully.")  # Debugging
+            return JsonResponse({'success': True, 'message': 'Order deleted successfully!'})
+        except Exception as e:
+            print(f"Error during deletion: {e}")  # Debugging
+            return JsonResponse({'error': str(e)}, status=500)
+    print(f"Invalid request method: {request.method}")  # Debugging
     return JsonResponse({'error': 'Invalid request method'}, status=405)
-
-
-def my_orders(request):
-    """
-    View to fetch and display all orders of the logged-in customer.
-    """
-    customer_id = request.session.get("user_id")
-
-    if not customer_id:
-        return HttpResponse("Unauthorized", status=401)
-
-    query = """
-        SELECT 
-            tso.Id AS id,
-            tso.OrderDate AS order_date,
-            tso.ServiceDate AS service_date,
-            tso.ServiceTime AS service_time,
-            ss.SubCategoryName AS subcategory,
-            tso.Session AS session,
-            tso.TotalPrice AS total_price,
-            tso.DiscountCode AS discount_code,
-            pm.Name AS payment_method,
-            u.Name AS worker,
-            os.Status AS status
-        FROM TR_SERVICE_ORDER tso
-        LEFT JOIN SERVICE_SUBCATEGORY ss ON tso.ServiceSubCategoryId = ss.Id
-        LEFT JOIN PAYMENT_METHOD pm ON tso.PaymentMethodId = pm.Id
-        LEFT JOIN WORKER w ON tso.WorkerId = w.Id
-        LEFT JOIN USERS u ON w.Id = u.Id
-        LEFT JOIN TR_ORDER_STATUS tos ON tso.Id = tos.ServiceTrId
-        LEFT JOIN ORDER_STATUS os ON tos.StatusId = os.Id
-        WHERE tso.CustomerId = %s
-        ORDER BY tso.OrderDate DESC
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(query, [customer_id])
-        orders = [
-            dict(zip([col[0] for col in cursor.description], row))
-            for row in cursor.fetchall()
-        ]
-
-    return render(request, 'MyOrder.html', {'orders': orders})
-
-
-from decimal import Decimal
-
-from datetime import date
-from decimal import Decimal
 
 def my_orders(request):
     """
@@ -779,9 +747,7 @@ def create_testimonial(request):
 
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
 
-import uuid
 
-@csrf_exempt
 @csrf_exempt
 def create_testimonial_for_subcategory(request, subcategory_id: uuid.UUID):
     """

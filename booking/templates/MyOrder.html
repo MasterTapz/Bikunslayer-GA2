@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Orders</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
 <body class="bg-gray-100">
 
@@ -88,35 +89,58 @@
 
     <!-- JavaScript -->
     <script>
+        console.log("Script loaded successfully!"); // Debugging
+        
         function payOrder(orderId) {
             // Redirect to the payment page or handle payment logic
             const paymentUrl = `/pay-order/${orderId}/`;
+            console.log(`Redirecting to payment for order ID: ${orderId}`);
             window.location.href = paymentUrl;
         }
 
         function editOrder(orderId) {
             // Redirect to the order edit page
             const editUrl = `/edit-order/${orderId}/`;
+            console.log(`Redirecting to edit order ID: ${orderId}`);
             window.location.href = editUrl;
         }
 
         function cancelOrder(orderId) {
-            // Confirm cancellation
+            console.log(`Attempting to cancel order with UUID: ${orderId}`); // Debugging
+
             if (confirm("Are you sure you want to cancel this order?")) {
                 fetch(`/cancel-order/${orderId}/`, {
-                    method: 'POST',
+                    method: 'DELETE',
                     headers: {
-                        'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token for security
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken() // Include CSRF token
                     }
-                }).then(response => {
+                })
+                .then(response => {
+                    console.log(response); // Debugging
                     if (response.ok) {
-                        alert("Order cancelled successfully!");
-                        location.reload(); // Reload the page to reflect changes
+                        alert("Order deleted successfully!");
+                        location.reload(); // Reload the page to reflect the changes
                     } else {
-                        alert("Failed to cancel the order.");
+                        return response.json().then(err => {
+                            throw new Error(err.message || "Failed to delete the order.");
+                        });
                     }
+                })
+                .catch(error => {
+                    console.error(`Error: ${error.message}`);
+                    alert(`Error: ${error.message}`);
                 });
             }
+        }
+
+        function getCSRFToken() {
+            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfTokenMeta) {
+                return csrfTokenMeta.getAttribute('content');
+            }
+            console.error('CSRF token not found in meta tags.');
+            return '';
         }
     </script>
 </body>
