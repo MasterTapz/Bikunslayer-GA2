@@ -14,7 +14,7 @@ urlpatterns = [
     # HTML Template views
     path('mypay/', MyPay, name='mypay'),
     path('mypay/transaction/', MyPay_Transaction, name='mypay-transaction'),
-    path('servicejob/status/', ServiceJob_Status, name='servicejob-status'),
+    path('servicejob/status/', ServiceJob_Status, name='servicejob_status'),
     path('servicejob/', ServiceJob, name='servicejob'),
 
     # API Endpoints

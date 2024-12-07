@@ -53,9 +53,9 @@
     <nav class="nav-links">
       <!-- Link to existing views -->
       <a href="{% url 'view_categories' %}">Homepage</a>
-      <a href="#">Manage My Jobs</a> <!-- Placeholder until the view is implemented -->
-      <a href="#">Manage Order Status</a> <!-- Placeholder until the view is implemented -->
-      <a href="#">MyPay</a> <!-- Placeholder until the view is implemented -->
+      <a href="{% url 'servicejob' %}">Manage My Job</a> <!-- Placeholder until the view is implemented -->
+      <a href="{% url 'servicejob_status' %}">Manage Order Status</a> <!-- Placeholder until the view is implemented -->
+      <a href="{% url 'mypay' %}">MyPay</a> <!-- Placeholder until the view is implemented -->
       <a href="{% url 'worker_profile' %}">Profile</a>
       <a href="{% url 'logout' %}">Logout</a>
     </nav>
