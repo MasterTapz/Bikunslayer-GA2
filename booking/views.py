@@ -45,6 +45,27 @@ def fetch_table_ids(table_name, columns):
 
 
 # View Functions
+
+def edit_order(request, order_id):
+    if request.method == "GET":
+        query = "SELECT * FROM TR_SERVICE_ORDER WHERE Id = %s"
+        with connection.cursor() as cursor:
+            cursor.execute(query, [order_id])
+            order = cursor.fetchone()
+        return render(request, 'edit_order.html', {'order': order})
+    elif request.method == "POST":
+        pass
+
+
+def cancel_order(request, order_id):
+    if request.method == "POST":
+        query = "UPDATE TR_SERVICE_ORDER SET Status = 'Cancelled' WHERE Id = %s"
+        with connection.cursor() as cursor:
+            cursor.execute(query, [order_id])
+        return JsonResponse({'success': True, 'message': 'Order cancelled successfully!'})
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
 def my_orders(request):
     """
     View to fetch and display all orders of the logged-in customer.

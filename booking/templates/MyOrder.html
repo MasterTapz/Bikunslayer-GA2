@@ -11,14 +11,14 @@
     <!-- Navbar Section -->
     {% if request.session.user_role == "worker" %}
     {% include "worker_navbar.html" %}
-{% elif request.session.user_role == "user" %}
+    {% elif request.session.user_role == "user" %}
     {% include "user_navbar.html" %}
-{% elif request.session.user_role == "customer" %}
+    {% elif request.session.user_role == "customer" %}
     {% include "user_navbar.html" %}
-{% else %}
-    <!-- Default or guest navbar -->
+    {% else %}
     {% include "guest_navbar.html" %}
-{% endif %}
+    {% endif %}
+
     <!-- Orders Section -->
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-2xl font-bold mb-6">My Orders</h1>
@@ -61,6 +61,16 @@
                                     {% else %}
                                         <span class="text-green-500 font-semibold">Paid</span>
                                     {% endif %}
+                                    <button 
+                                        onclick="editOrder('{{ order.id }}')" 
+                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md mt-2">
+                                        Edit
+                                    </button>
+                                    <button 
+                                        onclick="cancelOrder('{{ order.id }}')" 
+                                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md mt-2">
+                                        Cancel
+                                    </button>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -82,6 +92,31 @@
             // Redirect to the payment page or handle payment logic
             const paymentUrl = `/pay-order/${orderId}/`;
             window.location.href = paymentUrl;
+        }
+
+        function editOrder(orderId) {
+            // Redirect to the order edit page
+            const editUrl = `/edit-order/${orderId}/`;
+            window.location.href = editUrl;
+        }
+
+        function cancelOrder(orderId) {
+            // Confirm cancellation
+            if (confirm("Are you sure you want to cancel this order?")) {
+                fetch(`/cancel-order/${orderId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token for security
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        alert("Order cancelled successfully!");
+                        location.reload(); // Reload the page to reflect changes
+                    } else {
+                        alert("Failed to cancel the order.");
+                    }
+                });
+            }
         }
     </script>
 </body>
