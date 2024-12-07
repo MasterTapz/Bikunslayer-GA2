@@ -6,6 +6,7 @@ from datetime import datetime
 import uuid
 from django.views.decorators.csrf import csrf_exempt  
 from decimal import Decimal
+import json
 
 
 
@@ -61,29 +62,115 @@ def edit_order(request, order_id):
     elif request.method == "POST":
         pass
 
+
 @csrf_exempt
 def cancel_order(request, order_id):
+    """
+    Cancel from Payment:
+    Changes order status from 'Waiting for Payment' to 'Finding Nearest Worker' 
+    and refunds the user's balance. Does not remove the order entirely.
+    """
     if request.method == "DELETE":
         try:
-            # Log received UUID for debugging
-            print(f"Received DELETE request for order ID (UUID): {order_id}")
+            user_id = request.session.get("user_id")
+            if not user_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
 
-            # Ensure the ID is treated as a UUID string in the query
-            query = "DELETE FROM TR_SERVICE_ORDER WHERE Id = %s"
             with connection.cursor() as cursor:
-                cursor.execute(query, [order_id])
+                # Get order details
+                cursor.execute("""
+                    SELECT TotalPrice, CustomerId FROM TR_SERVICE_ORDER WHERE Id = %s
+                """, [order_id])
+                order_data = cursor.fetchone()
+                if not order_data:
+                    return JsonResponse({'success': False, 'message': 'Order not found.'}, status=404)
 
-            print(f"Order with ID {order_id} deleted successfully.")  # Debugging
-            return JsonResponse({'success': True, 'message': 'Order deleted successfully!'})
+                total_price, customer_id = order_data
+
+                # Check ownership
+                if not customer_id or str(customer_id) != user_id:
+                    return JsonResponse({'success': False, 'message': 'Unauthorized access to this order.'}, status=401)
+
+                # Update order status to 'Finding Nearest Worker'
+                # We assume the order is currently in 'Waiting for Payment'
+                cursor.execute("""
+                    INSERT INTO TR_ORDER_STATUS (ServiceTrId, StatusId, date)
+                    VALUES (
+                        %s,
+                        (SELECT Id FROM ORDER_STATUS WHERE Status = 'Finding Nearest Worker'),
+                        CURRENT_TIMESTAMP
+                    )
+                """, [order_id])
+
+                # Refund user's balance
+                cursor.execute("""
+                    UPDATE USERS
+                    SET mypaybalance = mypaybalance + %s
+                    WHERE Id = %s
+                """, [total_price, user_id])
+
+            return JsonResponse({
+                'success': True,
+                'message': 'Order moved to waiting for workers.',
+                'refund_amount': float(total_price)
+            })
         except Exception as e:
-            print(f"Error during deletion: {e}")  # Debugging
-            return JsonResponse({'error': str(e)}, status=500)
-    print(f"Invalid request method: {request.method}")  # Debugging
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+
+
+@csrf_exempt
+def cancel_worker_order(request, order_id):
+    """
+    Cancel from Workers:
+    Fully cancels (removes) the order and refunds the user's balance.
+    Assumes the order is currently 'Finding Nearest Worker' or 'Worker Assigned', etc.
+    """
+    if request.method == "DELETE":
+        try:
+            user_id = request.session.get("user_id")
+            if not user_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=401)
+
+            with connection.cursor() as cursor:
+                # Get order details
+                cursor.execute("""
+                    SELECT TotalPrice, CustomerId FROM TR_SERVICE_ORDER WHERE Id = %s
+                """, [order_id])
+                order_data = cursor.fetchone()
+                if not order_data:
+                    return JsonResponse({'success': False, 'message': 'Order not found.'}, status=404)
+
+                total_price, customer_id = order_data
+
+                # Check ownership
+                if not customer_id or str(customer_id) != user_id:
+                    return JsonResponse({'success': False, 'message': 'Unauthorized access to this order.'}, status=401)
+
+                # Refund user's balance since we are fully canceling the order
+                cursor.execute("""
+                    UPDATE USERS
+                    SET mypaybalance = mypaybalance + %s
+                    WHERE Id = %s
+                """, [total_price, user_id])
+
+                # Remove associated TR_ORDER_STATUS entries first (due to FK constraint)
+                cursor.execute("DELETE FROM TR_ORDER_STATUS WHERE ServiceTrId = %s", [order_id])
+
+                # Now remove the order from TR_SERVICE_ORDER
+                cursor.execute("DELETE FROM TR_SERVICE_ORDER WHERE Id = %s", [order_id])
+
+            return JsonResponse({'success': True, 'message': 'Order fully canceled and balance refunded.', 'refund_amount': float(total_price)})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+
 
 def my_orders(request):
     """
-    View to fetch and display all orders of the logged-in customer.
+    View to fetch and display all orders of the logged-in customer, including default statuses.
     """
     customer_id = request.session.get("user_id")
 
@@ -102,7 +189,7 @@ def my_orders(request):
             tso.DiscountCode AS discount_code,
             pm.Name AS payment_method,
             u.Name AS worker,
-            os.Status AS status
+            COALESCE(os.Status, 'Waiting for Payment') AS status
         FROM TR_SERVICE_ORDER tso
         LEFT JOIN SERVICE_SUBCATEGORY ss ON tso.ServiceSubCategoryId = ss.Id
         LEFT JOIN PAYMENT_METHOD pm ON tso.PaymentMethodId = pm.Id
@@ -120,7 +207,17 @@ def my_orders(request):
             for row in cursor.fetchall()
         ]
 
-    return render(request, 'MyOrder.html', {'orders': orders})
+    # Separate orders into categories
+    waiting_for_payment = [order for order in orders if order['status'] == 'Waiting for Payment']
+    waiting_for_workers = [order for order in orders if order['status'] == 'Finding Nearest Worker']
+
+    return render(request, 'MyOrder.html', {
+        'waiting_for_payment': waiting_for_payment,
+        'waiting_for_workers': waiting_for_workers
+    })
+
+
+
 from django.contrib import messages
 
 def book_service(request, subcategory_id, session):
@@ -182,15 +279,15 @@ def book_service(request, subcategory_id, session):
             query = """
                 INSERT INTO TR_SERVICE_ORDER (
                     Id, OrderDate, ServiceDate, ServiceTime, CustomerId,
-                    WorkerId, ServiceSubCategoryId, Session, TotalPrice,
+                    ServiceSubCategoryId, Session, TotalPrice,
                     DiscountCode, PaymentMethodId
                 ) VALUES (
-                    gen_random_uuid(), CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    gen_random_uuid(), CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s, %s
                 )
             """
             with connection.cursor() as cursor:
                 cursor.execute(query, [
-                    service_date, service_time, customer_id, worker_id,
+                    service_date, service_time, customer_id,
                     subcategory_id, session, price, discount_code, payment_method_id
                 ])
 
@@ -202,11 +299,100 @@ def book_service(request, subcategory_id, session):
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+@csrf_exempt
+def process_payment(request, order_id):
+    if request.method == "POST":
+        try:
+            print(f"Processing payment for order ID: {order_id}")  # Debugging
+            data = json.loads(request.body)
+            total_price = Decimal(data.get("total_price"))
+            print(f"Total Price from Request: {total_price}")  # Debugging
+
+            user_id = request.session.get("user_id")
+            if not user_id:
+                return JsonResponse({'success': False, 'message': 'Unauthorized access.'}, status=401)
+
+            # Ensure the 'date' column in TR_ORDER_STATUS has a default so we don't need to modify the insert SQL
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    ALTER TABLE TR_ORDER_STATUS
+                    ALTER COLUMN date SET DEFAULT CURRENT_TIMESTAMP;
+                """)
+
+            query_get_balance = """
+                SELECT mypaybalance
+                FROM USERS
+                WHERE Id = %s
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query_get_balance, [user_id])
+                result = cursor.fetchone()
+                print(f"User Balance: {result}")  # Debugging
+
+            if not result or result[0] < total_price:
+                return JsonResponse({'success': False, 'message': 'Insufficient balance.'}, status=400)
+
+            query_update_balance = """
+                UPDATE USERS
+                SET mypaybalance = mypaybalance - %s
+                WHERE Id = %s
+            """
+            query_update_order_status = """
+                INSERT INTO TR_ORDER_STATUS (ServiceTrId, StatusId)
+                VALUES (%s, (SELECT Id FROM ORDER_STATUS WHERE Status = 'Finding Nearest Worker'))
+            """
+
+            with connection.cursor() as cursor:
+                cursor.execute(query_update_balance, [total_price, user_id])
+                print("Balance Updated Successfully.")  # Debugging
+                cursor.execute(query_update_order_status, [order_id])
+                print("Order Status Updated Successfully.")  # Debugging
+
+            return JsonResponse({'success': True, 'message': 'Payment successful!'})
+        except Exception as e:
+            print(f"Error during payment processing: {e}")  # Debugging
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+    return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+
+
+def get_customer_balance(request):
+    if request.method == "GET":
+        user_id = request.session.get("user_id")  # Fetch the logged-in user's ID
+        if not user_id:
+            return JsonResponse({'error': 'Unauthorized'}, status=401)
+        try:
+            # Debug: Log user_id
+            print(f"Fetching balance for user_id: {user_id}")
+
+            # SQL query to fetch the balance from the USERS table
+            query = """
+                SELECT u.mypaybalance
+                FROM USERS u
+                WHERE u.Id = %s
+            """
+            with connection.cursor() as cursor:
+                cursor.execute(query, [user_id])
+                result = cursor.fetchone()
+
+            # Debug: Log the query result
+            print(f"Query result: {result}")
+
+            if result:
+                balance = result[0]
+                return JsonResponse({'balance': balance})
+            else:
+                return JsonResponse({'error': 'User not found or balance unavailable'}, status=404)
+        except Exception as e:
+            # Debug: Log exception
+            print(f"Error fetching balance: {e}")
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
 
 def view_subcategory_detail(request, subcategory_id):
     subcategory = fetch_subcategory_by_id(subcategory_id)
     sessions = fetch_service_sessions(subcategory_id)
-    workers = fetch_workers(subcategory_id)
     testimonials = fetch_testimonials_by_subcategory(subcategory_id)
     user_id = request.session.get("user_id")
     user_vouchers = get_user_vouchers(user_id) if user_id else []
@@ -225,7 +411,6 @@ def view_subcategory_detail(request, subcategory_id):
     context = {
         'subcategory': subcategory,
         'sessions': sessions,
-        'workers': workers,
         'testimonials': testimonials,
         'payment_methods': payment_methods,
         "user_vouchers": user_vouchers,

@@ -63,24 +63,6 @@
             </div>
         </div>
 
-        <!-- Workers Section -->
-        <div class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Available Workers</h2>
-            <div class="grid grid-cols-2 gap-4">
-                {% if workers %}
-                    {% for worker in workers %}
-                    <div class="bg-gray-50 shadow-md rounded-md p-4">
-                        <p class="font-semibold">Worker: {{ worker.workername }}</p>
-                        <p>Bank: {{ worker.bankname }}</p>
-                        <p>Rating: {{ worker.rate }}</p>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-gray-500">No workers available for this subcategory.</p>
-                {% endif %}
-            </div>
-        </div>
-
         <!-- Testimonials Section -->
         <div class="mb-8">
             <h2 class="text-xl font-semibold mb-4">Testimonials</h2>
@@ -106,19 +88,13 @@
             </button>
         </div>
 
+        <!-- Testimonial Modal (No Worker Selection) -->
         <div id="testimonialModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center">
             <div class="bg-white rounded-lg shadow-lg w-96 p-6">
                 <h2 class="text-xl font-bold mb-4">Create Testimonial</h2>
                 <form id="testimonialForm">
                     {% csrf_token %}
-                    <!-- Select Worker -->
-                    <label for="workerId" class="block text-gray-700 font-semibold">Select Worker:</label>
-                    <select id="workerId" name="workerId" required class="w-full border rounded-md p-2 mb-4">
-                        {% for worker in workers %}
-                            <option value="{{ worker.id }}">{{ worker.workername }}</option>
-                        {% endfor %}
-                    </select>
-
+                    
                     <!-- Comment Field -->
                     <label for="comment" class="block text-gray-700 font-semibold">Comment:</label>
                     <textarea id="comment" name="comment" required class="w-full border rounded-md p-2 mb-4"></textarea>
@@ -141,9 +117,8 @@
                 </form>
             </div>
         </div>
-        
 
-        <!-- Modal Section -->
+        <!-- Booking Modal (No Worker Selection) -->
         <div id="bookingModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center">
             <div class="bg-white rounded-lg shadow-lg w-96 p-6">
                 <h2 class="text-xl font-bold mb-4">Book Service</h2>
@@ -151,17 +126,7 @@
                 <p class="text-gray-700 mb-4">Price: $<span id="modalPrice"></span></p>
                 <form id="bookingForm" method="POST">
                     {% csrf_token %}
-                    
-                    <!-- Select Worker -->
-                    <label for="workerId" class="block text-gray-700 font-semibold">Select Worker:</label>
-                    <select id="workerId" name="workerId" required class="w-full border rounded-md p-2 mb-4">
-                        {% for worker in workers %}
-                            <option value="{{ worker.id }}">{{ worker.workername }} - {{ worker.bankname }}</option>
-                        {% endfor %}
-                    </select>
-        
-                    <!-- Select Discount Code -->
-                    <!-- Discount Code (Optional) -->
+
                     <!-- Discount Code Section -->
                     <label for="discountCode" class="block text-gray-700 font-semibold">Discount Code (Optional):</label>
                     <select id="discountCode" name="discountCode" class="w-full border rounded-md p-2 mb-4" onchange="applyDiscount()">
@@ -177,11 +142,7 @@
                         {% endif %}
                     </select>
 
-                    <!-- Promo Code -->
                     <!-- Promo Code Section -->
-                    <!-- Promo Code Section -->
-                    <!-- Promo Code -->
- 
                     <label for="promoCode" class="block text-gray-700 font-semibold">Promo Code (Optional):</label>
                     <select id="promoCode" name="promoCode" class="w-full border rounded-md p-2 mb-4" onchange="applyPromo()">
                         <option value="" selected>Select a promo code (optional)</option>
@@ -193,7 +154,6 @@
                             </option>
                         {% endfor %}
                     </select>
-                    
 
                     <!-- Select Payment Method -->
                     <label for="paymentMethodId" class="block text-gray-700 font-semibold">Select Payment Method:</label>
@@ -202,18 +162,18 @@
                             <option value="{{ payment_method.id }}">{{ payment_method.name }}</option>
                         {% endfor %}
                     </select>
-        
+
                     <!-- Service Date -->
                     <label for="serviceDate" class="block text-gray-700 font-semibold">Service Date:</label>
                     <input type="date" id="serviceDate" name="serviceDate" required class="w-full border rounded-md p-2 mb-4">
-                    
+
                     <!-- Service Time -->
                     <label for="serviceTime" class="block text-gray-700 font-semibold">Service Time:</label>
                     <input type="time" id="serviceTime" name="serviceTime" required class="w-full border rounded-md p-2 mb-4">
-        
+
                     <input type="hidden" id="sessionInput" name="session">
                     <input type="hidden" id="priceInput" name="price">
-        
+
                     <div class="flex justify-end space-x-4">
                         <button type="button" class="bg-gray-500 text-white rounded-md px-4 py-2" onclick="closeModal()">Cancel</button>
                         <button type="submit" class="bg-green-500 text-white rounded-md px-4 py-2">Confirm</button>
@@ -221,103 +181,27 @@
                 </form>
             </div>
         </div>
-        
-
     </div>
 
-    <!-- JavaScript for Modal -->
-    <!-- Updated JavaScript -->
+    <!-- JavaScript -->
     <script>
-
-        
         function openModal(session, price) {
-            // Populate modal content
             document.getElementById('modalSession').textContent = session;
             document.getElementById('modalPrice').textContent = price;
-
-            // Assign values to hidden inputs
             document.getElementById('sessionInput').value = session;
             document.getElementById('priceInput').value = price;
 
-            // Reset discount selection
-            const discountDropdown = document.getElementById('discountCode');
-            discountDropdown.value = "";
-
-            // Reset price display to original price
-            document.getElementById('modalPrice').textContent = price;
-
-            // Set the form action dynamically
+            // Add these lines:
             const subcategoryId = "{{ subcategory.id }}";
             const form = document.getElementById('bookingForm');
             form.action = `/book-service/${subcategoryId}/${session}/`;
 
-            // Show the modal
             document.getElementById('bookingModal').classList.remove('hidden');
         }
 
+
         function closeModal() {
-            // Hide the modal
             document.getElementById('bookingModal').classList.add('hidden');
-        }
-
-        function applyDiscount() {
-            const discountDropdown = document.getElementById('discountCode');
-            const discountPercentage = discountDropdown.options[discountDropdown.selectedIndex]?.getAttribute("data-discount");
-
-            const priceElement = document.getElementById('modalPrice'); // The price span in the modal
-            const originalPrice = parseFloat(document.getElementById('priceInput').value); // Original price (stored in hidden input)
-
-            if (discountPercentage) {
-                // Calculate the new price after applying the discount
-                const discountedPrice = originalPrice - (originalPrice * (parseFloat(discountPercentage) / 100));
-
-                // Update the price in the modal
-                priceElement.textContent = discountedPrice.toFixed(2);
-            } else {
-                // If no discount is selected, revert to original price
-                priceElement.textContent = originalPrice.toFixed(2);
-            }
-        }
-        function applyPromo() {
-            const promoDropdown = document.getElementById('promoCode');
-            const selectedOption = promoDropdown.options[promoDropdown.selectedIndex];
-
-            // Ensure an option is selected
-            if (!selectedOption || !selectedOption.hasAttribute('data-promo-discount')) {
-                console.log("No valid promo code selected.");
-                return;
-            }
-
-            // Extract promo discount and minimum order attributes safely
-            const promoDiscount = parseFloat(selectedOption.getAttribute("data-promo-discount") || 0);
-            const minOrder = parseFloat(selectedOption.getAttribute("data-min-order") || 0);
-
-            const priceElement = document.getElementById('modalPrice'); // The price span in the modal
-            const originalPrice = parseFloat(document.getElementById('priceInput').value); // Original price
-
-            console.log("Original Price:", originalPrice);
-            console.log("Promo Discount:", promoDiscount);
-            console.log("Minimum Order:", minOrder);
-
-            if (isNaN(originalPrice) || originalPrice <= 0) {
-                alert("Invalid original price. Please try again.");
-                return;
-            }
-
-            if (originalPrice >= minOrder) {
-                // Calculate the new price after applying the promo discount
-                const discountedPrice = originalPrice - (originalPrice * (promoDiscount / 100));
-                console.log("Discounted Price:", discountedPrice);
-
-                // Update the price in the modal
-                priceElement.textContent = discountedPrice.toFixed(2);
-                document.getElementById('priceInput').value = discountedPrice.toFixed(2); // Sync hidden input
-            } else {
-                alert(`This promo requires a minimum order of $${minOrder.toFixed(2)}.`);
-                promoDropdown.value = ""; // Reset promo dropdown if not applicable
-                priceElement.textContent = originalPrice.toFixed(2); // Reset to original price
-                document.getElementById('priceInput').value = originalPrice.toFixed(2); // Sync hidden input
-            }
         }
 
         function openTestimonialModal() {
@@ -328,30 +212,75 @@
             document.getElementById('testimonialModal').classList.add('hidden');
         }
 
+        function applyDiscount() {
+            const discountDropdown = document.getElementById('discountCode');
+            const discountPercentage = discountDropdown.options[discountDropdown.selectedIndex]?.getAttribute("data-discount");
+
+            const priceElement = document.getElementById('modalPrice'); 
+            const originalPrice = parseFloat(document.getElementById('priceInput').value);
+
+            if (discountPercentage) {
+                const discountedPrice = originalPrice - (originalPrice * (parseFloat(discountPercentage) / 100));
+                priceElement.textContent = discountedPrice.toFixed(2);
+            } else {
+                priceElement.textContent = originalPrice.toFixed(2);
+            }
+        }
+
+        function applyPromo() {
+            const promoDropdown = document.getElementById('promoCode');
+            const selectedOption = promoDropdown.options[promoDropdown.selectedIndex];
+
+            if (!selectedOption || !selectedOption.hasAttribute('data-promo-discount')) {
+                console.log("No valid promo code selected.");
+                return;
+            }
+
+            const promoDiscount = parseFloat(selectedOption.getAttribute("data-promo-discount") || 0);
+            const minOrder = parseFloat(selectedOption.getAttribute("data-min-order") || 0);
+
+            const priceElement = document.getElementById('modalPrice'); 
+            const originalPrice = parseFloat(document.getElementById('priceInput').value);
+
+            if (isNaN(originalPrice) || originalPrice <= 0) {
+                alert("Invalid original price. Please try again.");
+                return;
+            }
+
+            if (originalPrice >= minOrder) {
+                const discountedPrice = originalPrice - (originalPrice * (promoDiscount / 100));
+                priceElement.textContent = discountedPrice.toFixed(2);
+                document.getElementById('priceInput').value = discountedPrice.toFixed(2);
+            } else {
+                alert(`This promo requires a minimum order of $${minOrder.toFixed(2)}.`);
+                promoDropdown.value = "";
+                priceElement.textContent = originalPrice.toFixed(2);
+                document.getElementById('priceInput').value = originalPrice.toFixed(2);
+            }
+        }
+
         document.getElementById('testimonialForm').addEventListener('submit', function(event) {
             event.preventDefault();
 
-            const subcategoryId = "{{ subcategory.id }}"; // Pass the subcategory dynamically
-            const workerId = document.getElementById('workerId').value;
+            const subcategoryId = "{{ subcategory.id }}";
             const comment = document.getElementById('comment').value;
             const rating = document.getElementById('rating').value;
 
-            // Make POST request
             fetch(`/create-testimonial/${subcategoryId}/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token
+                    'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify({ worker: workerId, comment, rating })
+                body: JSON.stringify({ comment, rating })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     alert(data.message);
-                    location.reload(); // Reload to update testimonials
+                    location.reload();
                 } else {
-                    alert(data.message); // Show error message
+                    alert(data.message);
                 }
             })
             .catch(error => console.error('Error:', error));
