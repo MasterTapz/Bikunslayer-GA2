@@ -3,6 +3,8 @@ from django.http import JsonResponse
 from django.db import connection
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.utils.timezone import now
+from django.db import connection, transaction
 
 def MyPay(request):
     user_id = request.session.get("user_id")
@@ -145,78 +147,29 @@ def ServiceJob_Status(request):
 
 
 
+from django.shortcuts import render, redirect
+from django.db import connection
+from django.http import JsonResponse
 
 def ServiceJob(request):
     user_id = request.session.get("user_id")
     if not user_id:
         return redirect("login")
 
-    if request.method == "POST":
-        # Handle accepting a service job
-        order_id = request.POST.get("order_id")
-        if not order_id:
-            messages.error(request, "Invalid order ID.")
-            return redirect("servicejob")
+    service_category_id = request.GET.get("service_category_id")
+    service_subcategory_id = request.GET.get("service_subcategory_id")
 
-        with connection.cursor() as cursor:
-            try:
-                # Update the worker ID and status of the selected order
-                cursor.execute("""
-                    UPDATE TR_SERVICE_ORDER
-                    SET WorkerId = %s
-                    WHERE Id = %s AND Id NOT IN (
-                        SELECT ServiceTrId FROM TR_ORDER_STATUS WHERE StatusId IN (
-                            SELECT Id FROM ORDER_STATUS WHERE Status = 'Waiting for Worker to Depart'
-                        )
-                    )
-                """, [user_id, order_id])
-
-                if cursor.rowcount == 0:
-                    messages.error(request, "Failed to accept the job. It might already be taken.")
-                    return redirect("servicejob")
-
-                # Insert the new status into TR_ORDER_STATUS
-                cursor.execute("""
-                    INSERT INTO TR_ORDER_STATUS (ServiceTrId, StatusId, date)
-                    VALUES (
-                        %s,
-                        (SELECT Id FROM ORDER_STATUS WHERE Status = 'Waiting for Worker to Depart'),
-                        NOW()
-                    )
-                """, [order_id])
-
-                # Fetch job details for immediate display in ServiceJob_Status
-                cursor.execute("""
-                    SELECT tso.Id, ssc.SubCategoryName, tso.OrderDate, tso.ServiceDate, 
-                           (SELECT Status FROM ORDER_STATUS WHERE Id = 
-                            (SELECT StatusId FROM TR_ORDER_STATUS WHERE ServiceTrId = tso.Id ORDER BY date DESC LIMIT 1)
-                           ) AS Status,
-                           NOW() AS StatusChangeDate
-                    FROM TR_SERVICE_ORDER tso
-                    JOIN SERVICE_SUBCATEGORY ssc ON tso.ServiceSubCategoryId = ssc.Id
-                    WHERE tso.Id = %s
-                """, [order_id])
-                accepted_job = cursor.fetchone()
-
-                # Store the accepted job details in the session for immediate display
-                request.session['accepted_job'] = {
-                    "id": accepted_job[0],
-                    "subcategory_name": accepted_job[1],
-                    "order_date": accepted_job[2].strftime("%Y-%m-%d"),
-                    "service_date": accepted_job[3].strftime("%Y-%m-%d"),
-                    "status": accepted_job[4],
-                    "status_change_date": accepted_job[5].strftime("%Y-%m-%d %H:%M:%S"),
-                }
-
-                messages.success(request, "Successfully accepted the job.")
-            except Exception as e:
-                messages.error(request, f"An error occurred: {e}")
-
-        return redirect("servicejob_status")
-
-    # Fetch available service jobs for the worker
+    # Fetch worker's service categories
     with connection.cursor() as cursor:
         cursor.execute("""
+            SELECT ServiceCategoryId
+            FROM WORKER_SERVICE_CATEGORY
+            WHERE WorkerId = %s
+        """, [user_id])
+        worker_categories = [row[0] for row in cursor.fetchall()]
+
+        # Fetch service jobs matching worker's expertise and filters where WorkerId is NULL
+        query = """
             SELECT 
                 tso.Id AS OrderId,
                 ssc.SubCategoryName AS SubCategory,
@@ -227,13 +180,51 @@ def ServiceJob(request):
                 os.Status AS OrderStatus
             FROM TR_SERVICE_ORDER tso
             JOIN SERVICE_SUBCATEGORY ssc ON tso.ServiceSubCategoryId = ssc.Id
-            JOIN SERVICE_SESSION ss ON ssc.Id = ss.SubCategoryId
+            JOIN SERVICE_SESSION ss ON ssc.Id = ss.SubCategoryId AND tso.Session = ss.Session
             JOIN TR_ORDER_STATUS tos ON tso.Id = tos.ServiceTrId
             JOIN ORDER_STATUS os ON tos.StatusId = os.Id
-            WHERE os.Status = 'Looking for Nearby Worker'
-            ORDER BY tso.OrderDate DESC
-        """)
+            WHERE tso.WorkerId IS NULL
+              AND ssc.ServiceCategoryId IN %s
+        """
+        params = [tuple(worker_categories)]
+
+        if service_category_id:
+            query += " AND ssc.ServiceCategoryId = %s"
+            params.append(service_category_id)
+        if service_subcategory_id:
+            query += " AND ssc.Id = %s"
+            params.append(service_subcategory_id)
+
+        query += " ORDER BY tso.OrderDate DESC"
+        cursor.execute(query, params)
         service_jobs = cursor.fetchall()
+
+    # Fetch service categories and subcategories
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT 
+                sc.Id AS CategoryId, 
+                sc.CategoryName, 
+                ssc.Id AS SubCategoryId, 
+                ssc.SubCategoryName
+            FROM SERVICE_CATEGORY sc
+            LEFT JOIN SERVICE_SUBCATEGORY ssc ON sc.Id = ssc.ServiceCategoryId
+            ORDER BY sc.CategoryName, ssc.SubCategoryName
+        """)
+        categories = cursor.fetchall()
+
+    category_data = {}
+    for category_id, category_name, sub_category_id, sub_category_name in categories:
+        if category_id not in category_data:
+            category_data[category_id] = {
+                "name": category_name,
+                "subcategories": [],
+            }
+        if sub_category_id:
+            category_data[category_id]["subcategories"].append({
+                "id": sub_category_id,
+                "name": sub_category_name,
+            })
 
     context = {
         "service_jobs": [
@@ -248,11 +239,66 @@ def ServiceJob(request):
             }
             for row in service_jobs
         ],
+        "categories": category_data,
     }
     return render(request, 'ServiceJob.html', context)
 
+def fetch_subcategories(request):
+    category_id = request.GET.get("category_id")
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT Id, SubCategoryName
+            FROM SERVICE_SUBCATEGORY
+            WHERE ServiceCategoryId = %s
+        """, [category_id])
+        subcategories = cursor.fetchall()
+
+    return JsonResponse({"subcategories": [{"id": row[0], "name": row[1]} for row in subcategories]})
 
 
+def accept_order(request):
+    if request.method == "POST":
+        order_id = request.POST.get("order_id")
+        user_id = request.session.get("user_id")
+        
+        if not user_id:
+            return JsonResponse({"error": "Unauthorized. Please log in."}, status=401)
+        
+        try:
+            with transaction.atomic():
+                # Update WorkerId in TR_SERVICE_ORDER
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        UPDATE TR_SERVICE_ORDER
+                        SET WorkerId = %s
+                        WHERE Id = %s AND WorkerId IS NULL
+                        RETURNING Id;
+                    """, [user_id, order_id])
+                    updated_order = cursor.fetchone()
+                
+                # If no rows were updated, return an error
+                if not updated_order:
+                    return JsonResponse({"error": "Order not found or already assigned."}, status=404)
+
+                # Get "Worker Assigned" status ID
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT Id FROM ORDER_STATUS WHERE Status = 'Worker Assigned'
+                    """)
+                    status_id = cursor.fetchone()[0]
+
+                # Insert the new status into TR_ORDER_STATUS
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO TR_ORDER_STATUS (ServiceTrId, StatusId, date)
+                        VALUES (%s, %s, %s)
+                    """, [order_id, status_id, now()])
+            
+            return JsonResponse({"success": True, "message": "Order accepted successfully."})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method."}, status=400)
 
 
 

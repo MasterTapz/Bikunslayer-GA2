@@ -3,194 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Job</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background-color: #007BFF;
-            color: white;
-            padding: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-
-        .navbar a {
-            color: white;
-            margin-right: 15px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .navbar a:hover {
-            text-decoration: underline;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 800px;
-            background: #ffffff;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin: 80px auto 20px; /* Add margin-top to adjust for fixed navbar */
-        }
-
-        h3 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .form-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .form-section label {
-            margin-right: 10px;
-        }
-
-        .form-section select,
-        .form-section button {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .service-list {
-            margin-top: 20px;
-        }
-
-        .service-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            background-color: #f9f9f9;
-        }
-
-        .service-item span {
-            flex: 1;
-        }
-
-        .service-item button {
-            padding: 5px 10px;
-            border: none;
-            background-color: #007BFF;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .service-item button:hover {
-            background-color: #0056b3;
-        }
-    </style>
+    <title>Service Jobs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="csrf-token" content="{{ csrf_token }}">
 </head>
-<body>
+<body class="bg-gray-100">
+
     <!-- Navbar -->
-    <div class="navbar">
-        {% if request.session.user_role == "worker" %}
-            {% include "worker_navbar.html" %}
-        {% elif request.session.user_role == "user" %}
-            {% include "user_navbar.html" %}
-        {% else %}
-            {% include "guest_navbar.html" %}
-        {% endif %}
-    </div>
+    {% if request.session.user_role == "worker" %}
+        {% include "worker_navbar.html" %}
+    {% elif request.session.user_role == "customer" %}
+        {% include "user_navbar.html" %}
+    {% else %}
+        {% include "guest_navbar.html" %}
+    {% endif %}
 
-    <div class="container">
-        <h3>Service Orders</h3>
-        <div class="form-section">
-            <label for="serviceCategory">Category:</label>
-            <select id="serviceCategory" onchange="populateSubcategories()">
-                <option value="">-- Select Category --</option>
-                <option value="home_cleaning">Home Cleaning</option>
-                <option value="massage">Massage</option>
-            </select>
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-2xl font-bold mb-6">Service Orders</h1>
 
-            <label for="serviceSubcategory">Subcategory:</label>
-            <select id="serviceSubcategory">
-                <option value="">-- Select Subcategory --</option>
-            </select>
-
-            <button onclick="filterOrders()">Search</button>
+        <!-- Filter Section -->
+        <div class="bg-white shadow-md rounded-lg p-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Category Filter -->
+                <div>
+                    <label for="serviceCategory" class="block text-sm font-medium text-gray-700">Category:</label>
+                    <select id="serviceCategory" onchange="populateSubcategories()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">-- Select Category --</option>
+                        {% for category_id, category in categories.items %}
+                            <option value="{{ category_id }}" {% if request.GET.service_category_id == category_id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            
+                <!-- Subcategory Filter -->
+                <div>
+                    <label for="serviceSubcategory" class="block text-sm font-medium text-gray-700">Subcategory:</label>
+                    <select id="serviceSubcategory" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">-- Select Subcategory --</option>
+                        {% if request.GET.service_category_id %}
+                            {% for category_id, category in categories.items %}
+                                {% if category_id == request.GET.service_category_id %}
+                                    {% for subcategory in category.subcategories %}
+                                        <option value="{{ subcategory.id }}" {% if request.GET.service_subcategory_id == subcategory.id %}selected{% endif %}>
+                                            {{ subcategory.name }}
+                                        </option>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+            
+                <!-- Search Button -->
+                <div class="flex items-end">
+                    <button onclick="filterOrders()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md w-full">Search</button>
+                </div>
+            </div>            
         </div>
 
-        <div class="service-list" id="serviceList">
-            <!-- Orders will be dynamically rendered here -->
+        <!-- Service List -->
+        <div id="serviceList" class="space-y-4">
+            {% if service_jobs %}
+                {% for job in service_jobs %}
+                    <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
+                        <div>
+                            <p class="text-sm text-gray-500">Subcategory: {{ job.sub_category }}</p>
+                            <p class="text-sm text-gray-500">Order Date: {{ job.order_date }}</p>
+                            <p class="text-sm text-gray-500">Service Date: {{ job.service_date }}</p>
+                            <p class="text-sm text-gray-500">Session: {{ job.session }}</p>
+                            <p class="text-sm text-gray-500">Total: ${{ job.total_price }}</p>
+                        </div>
+                        <button onclick="acceptOrder('{{ job.id }}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md">Accept Order</button>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-gray-500">No service orders available.</p>
+            {% endif %}
         </div>
     </div>
 
+    <!-- JavaScript -->
     <script>
-        const orders = [
-            { id: 1, category: "home_cleaning", subcategory: "Daily Cleaning", user: "User 1", status: "Looking for Nearby Worker", orderDate: "2024-11-17", workingDate: "2024-11-18", session: "Morning", totalAmount: 50 },
-            { id: 2, category: "home_cleaning", subcategory: "Kitchen Cleaning", user: "User 2", status: "Looking for Nearby Worker", orderDate: "2024-11-16", workingDate: "2024-11-19", session: "Afternoon", totalAmount: 75 },
-            { id: 3, category: "massage", subcategory: "Full Body Massage", user: "User 3", status: "Looking for Nearby Worker", orderDate: "2024-11-15", workingDate: "2024-11-20", session: "Evening", totalAmount: 100 },
-        ];
+        // Category data from backend
+        const categoryData = JSON.parse('{{ categories|safe|escapejs }}');
 
-        const subcategories = {
-            home_cleaning: ["Daily Cleaning", "Kitchen Cleaning", "Deep Cleaning"],
-            massage: ["Full Body Massage", "Head Massage", "Foot Massage"]
-        };
-
+        // Populate subcategories based on the selected category
         function populateSubcategories() {
-            const category = document.getElementById('serviceCategory').value;
+            const categoryId = document.getElementById('serviceCategory').value;
             const subcategoryDropdown = document.getElementById('serviceSubcategory');
             subcategoryDropdown.innerHTML = '<option value="">-- Select Subcategory --</option>';
-            if (subcategories[category]) {
-                subcategories[category].forEach(sub => {
-                    subcategoryDropdown.innerHTML += `<option value="${sub}">${sub}</option>`;
-                });
+
+            if (categoryId) {
+                fetch(`/fetch-subcategories/?category_id=${categoryId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.subcategories) {
+                            data.subcategories.forEach(sub => {
+                                subcategoryDropdown.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
+                            });
+                        } else {
+                            console.error("No subcategories found.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching subcategories:", error);
+                    });
             }
         }
 
+        // Filter orders dynamically
         function filterOrders() {
             const category = document.getElementById('serviceCategory').value;
             const subcategory = document.getElementById('serviceSubcategory').value;
-            const serviceList = document.getElementById('serviceList');
-            serviceList.innerHTML = '';
 
-            const filteredOrders = orders.filter(order => 
-                (category ? order.category === category : true) &&
-                (subcategory ? order.subcategory === subcategory : true) &&
-                order.status === "Looking for Nearby Worker"
-            );
-
-            if (filteredOrders.length > 0) {
-                filteredOrders.forEach(order => {
-                    serviceList.innerHTML += `
-                        <div class="service-item">
-                            <span>Subcategory: ${order.subcategory} | User: ${order.user} | Total: $${order.totalAmount} | Order Date: ${order.orderDate} | Working Date: ${order.workingDate} | Session: ${order.session}</span>
-                            <button onclick="acceptOrder(${order.id})">Accept Order</button>
-                        </div>`;
-                });
+            const url = new URL(window.location.href);
+            if (category) {
+                url.searchParams.set("service_category_id", category);
             } else {
-                serviceList.innerHTML = '<p>No orders found.</p>';
+                url.searchParams.delete("service_category_id");
             }
+            if (subcategory) {
+                url.searchParams.set("service_subcategory_id", subcategory);
+            } else {
+                url.searchParams.delete("service_subcategory_id");
+            }
+
+            // Reload the page with the updated query parameters
+            window.location.href = url.toString();
         }
 
+        // Accept an order
         function acceptOrder(orderId) {
-            const order = orders.find(o => o.id === orderId);
-            if (order) {
-                order.status = "Waiting for Nearby Worker";
-                alert(`Order for ${order.subcategory} accepted!`);
-                filterOrders();
-            }
+            console.log("Accepting order ID:", orderId); // Debugging: Log orderId
+            fetch("/accept-order/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                },
+                body: JSON.stringify({ order_id: orderId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Response:", data); // Debugging: Log server response
+                if (data.success) {
+                    alert("Order accepted successfully!");
+                    location.reload(); // Reload to reflect changes
+                } else {
+                    alert(data.error || "Failed to accept the order.");
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("An error occurred. Please try again.");
+            });
         }
     </script>
 </body>
