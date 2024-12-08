@@ -10,10 +10,29 @@
             background-color: #f4f4f4;
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .navbar a {
+            color: white;
+            margin-right: 15px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
         }
 
         .container {
@@ -23,6 +42,7 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 80px auto 20px; /* Add margin-top to adjust for fixed navbar */
         }
 
         h3 {
@@ -82,6 +102,17 @@
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <div class="navbar">
+        {% if request.session.user_role == "worker" %}
+            {% include "worker_navbar.html" %}
+        {% elif request.session.user_role == "user" %}
+            {% include "user_navbar.html" %}
+        {% else %}
+            {% include "guest_navbar.html" %}
+        {% endif %}
+    </div>
+
     <div class="container">
         <h3>Service Orders</h3>
         <div class="form-section">

@@ -9,12 +9,35 @@
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .navbar a {
+            color: white;
+            margin-right: 15px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
         }
 
         .container {
             max-width: 800px;
-            margin: auto;
+            margin: 80px auto 20px; /* Adjust margin for navbar */
             background: #ffffff;
             border-radius: 10px;
             padding: 20px;
@@ -24,6 +47,12 @@
         h3 {
             text-align: center;
             margin-bottom: 20px;
+        }
+
+        .no-jobs {
+            text-align: center;
+            margin: 20px 0;
+            color: #888;
         }
 
         .form-section {
@@ -37,7 +66,9 @@
             margin-right: 10px;
         }
 
-        .form-section input, .form-section select, .form-section button {
+        .form-section input,
+        .form-section select,
+        .form-section button {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
@@ -87,6 +118,17 @@
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <div class="navbar">
+        {% if request.session.user_role == "worker" %}
+            {% include "worker_navbar.html" %}
+        {% elif request.session.user_role == "user" %}
+            {% include "user_navbar.html" %}
+        {% else %}
+            {% include "guest_navbar.html" %}
+        {% endif %}
+    </div>
+
     <div class="container">
         <h3>Service Job Status</h3>
 
@@ -114,18 +156,26 @@
     </div>
 
     <script>
-        // Mock Data
-        const orders = [
-            { id: 1, name: "Daily Cleaning", user: "User 1", status: "waiting", orderDate: "2024-11-17", workingDate: "2024-11-18", session: "Morning", totalAmount: 50 },
-            { id: 2, name: "Kitchen Cleaning", user: "User 2", status: "arrived", orderDate: "2024-11-16", workingDate: "2024-11-19", session: "Afternoon", totalAmount: 75 },
-            { id: 3, name: "Full Body Massage", user: "User 3", status: "in_progress", orderDate: "2024-11-15", workingDate: "2024-11-20", session: "Evening", totalAmount: 100 },
-        ];
+        async function fetchJobs() {
+            try {
+                const response = await fetch('/api/get-service-jobs'); // Adjust the API endpoint as needed
+                const data = await response.json();
+                return data.jobs || [];
+            } catch (error) {
+                console.error('Error fetching jobs:', error);
+                return [];
+            }
+        }
 
-        function renderOrders(filteredOrders = orders) {
+        async function renderOrders(filteredOrders = null) {
             const serviceList = document.getElementById('serviceList');
             serviceList.innerHTML = '';
 
-            filteredOrders.forEach(order => {
+            const orders = filteredOrders || (await fetchJobs());
+
+        
+
+            orders.forEach(order => {
                 let button = '';
 
                 switch (order.status) {
@@ -146,23 +196,31 @@
                 serviceList.innerHTML += `
                     <div class="service-item">
                         <span>
-                            <strong>Subcategory:</strong> ${order.name} | 
-                            <strong>User:</strong> ${order.user} | 
-                            <strong>Total:</strong> $${order.totalAmount} | 
-                            <strong>Order Date:</strong> ${order.orderDate} | 
-                            <strong>Working Date:</strong> ${order.workingDate} | 
-                            <strong>Session:</strong> ${order.session}
-                        </span>
+                            <strong>Subcategory:</strong> {{ job.subcategory_name }} |
+                            <strong>Order Date:</strong> {{ job.order_date }} |
+                            <strong>Service Date:</strong> {{ job.service_date }} |
+                            <strong>Status:</strong> {{ job.status }} |
+                            <strong>Last Updated:</strong> {{ job.status_change_date }}
+                            </span>
                         ${button}
                     </div>`;
             });
         }
 
-        function updateStatus(orderId, newStatus) {
-            const order = orders.find(o => o.id === orderId);
-            if (order) {
-                order.status = newStatus;
-                renderOrders();
+        async function updateStatus(orderId, newStatus) {
+            try {
+                const response = await fetch(`/api/update-service-status/${orderId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newStatus }),
+                });
+                if (response.ok) {
+                    renderOrders();
+                } else {
+                    console.error('Error updating status:', await response.text());
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
             }
         }
 
@@ -170,12 +228,13 @@
             const filterName = document.getElementById('filterName').value.toLowerCase();
             const filterStatus = document.getElementById('filterStatus').value;
 
-            const filteredOrders = orders.filter(order =>
-                (filterName ? order.name.toLowerCase().includes(filterName) : true) &&
-                (filterStatus ? order.status === filterStatus : true)
-            );
-
-            renderOrders(filteredOrders);
+            fetchJobs().then(orders => {
+                const filteredOrders = orders.filter(order =>
+                    (filterName ? order.name.toLowerCase().includes(filterName) : true) &&
+                    (filterStatus ? order.status === filterStatus : true)
+                );
+                renderOrders(filteredOrders);
+            });
         }
 
         // Initial Render
