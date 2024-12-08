@@ -239,16 +239,51 @@ def book_service(request, subcategory_id, session):
             # Apply discount code if provided
             if discount_code:
                 with connection.cursor() as cursor:
+                    # Fetch voucher details including expiration date and usage limit
                     cursor.execute("""
-                        SELECT Discount
-                        FROM DISCOUNT
-                        WHERE Code = %s
+                        SELECT tvp.ExpirationDate, v.UserQuota, tvp.AlreadyUse
+                        FROM VOUCHER v
+                        INNER JOIN TR_VOUCHER_PAYMENT tvp ON v.Code = tvp.VoucherId
+                        WHERE v.Code = %s AND tvp.CustomerId = %s
+                    """, [discount_code, customer_id])
+                    voucher_data = cursor.fetchone()
+
+                    if not voucher_data:
+                        messages.error(request, 'Invalid voucher code.')
+                        return redirect('subcategory_detail', subcategory_id=subcategory_id)
+                        
+
+                    expiration_date, usage_limit, already_used = voucher_data
+
+                    # Check if the voucher is expired
+                    if expiration_date < datetime.now().date():
+                        messages.error(request, 'This voucher has expired.')
+                        return redirect('subcategory_detail', subcategory_id=subcategory_id)
+
+                    # Check if the voucher has reached its usage limit
+                    if already_used >= usage_limit:
+                        messages.error(request, 'This voucher has reached its usage limit.')
+                        return redirect('subcategory_detail', subcategory_id=subcategory_id)
+
+                    # Mark the voucher as used
+                    cursor.execute("""
+                        UPDATE TR_VOUCHER_PAYMENT
+                        SET AlreadyUse = AlreadyUse + 1
+                        WHERE VoucherId = %s AND CustomerId = %s
+                    """, [discount_code, customer_id])
+
+                    # Fetch the discount percentage and apply the discount
+                    cursor.execute("""
+                        SELECT d.Discount
+                        FROM DISCOUNT d
+                        WHERE d.Code = %s
                     """, [discount_code])
                     discount_data = cursor.fetchone()
+
                     if discount_data:
-                        discount_percentage = Decimal(discount_data[0])  # Ensure discount is Decimal
-                        # Apply discount to price
+                        discount_percentage = Decimal(discount_data[0])
                         price -= price * (discount_percentage / Decimal(100))
+
 
             # Apply promo code if provided
             if promo_code:
@@ -260,19 +295,21 @@ def book_service(request, subcategory_id, session):
                         WHERE p.Code = %s
                     """, [promo_code])
                     promo_data = cursor.fetchone()
+
                     if promo_data:
                         promo_discount, min_order, offer_end_date = list(map(Decimal, promo_data[:2])) + [promo_data[2]]
-                        
+
                         # Validate promo code expiration
                         if offer_end_date < datetime.now().date():
                             return JsonResponse({'error': 'The promo code has expired.'}, status=400)
 
                         # Validate minimum transaction order
-                        if price < min_order:
+                        if Decimal(request.POST.get("price")) < min_order:
                             return JsonResponse({'error': 'Order does not meet the minimum requirement for this promo code.'}, status=400)
 
-                        # Apply promo discount
-                        price = price - (price * (promo_discount / Decimal(100)))
+                        # Trust the frontend and DO NOT apply the discount again
+                        # The backend should only validate, not modify, the price.
+
 
 
             # Insert into TR_SERVICE_ORDER

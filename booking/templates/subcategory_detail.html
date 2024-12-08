@@ -19,8 +19,19 @@
         <!-- Default or guest navbar -->
         {% include "guest_navbar.html" %}
     {% endif %}
-
+    
     <div class="container mx-auto px-4 py-8 bg-white shadow-md rounded-md">
+
+        {% if messages %}
+        <div class="container mx-auto p-4">
+            {% for message in messages %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
 
         <!-- Header Section -->
         <div class="flex justify-between items-center mb-8">
@@ -160,9 +171,10 @@
                     {% csrf_token %}
 
                     <!-- Discount Code Section -->
+                    <!-- Discount Code Section -->
                     <label for="discountCode" class="block text-gray-700 font-semibold">Discount Code (Optional):</label>
                     <select id="discountCode" name="discountCode" class="w-full border rounded-md p-2 mb-4" onchange="applyDiscount()">
-                        <option value="" selected disabled>Select a discount code (optional)</option>
+                        <option value="">No Discount Code</option> <!-- Default option -->
                         {% if user_vouchers %}
                             {% for voucher in user_vouchers %}
                                 <option value="{{ voucher.voucher_code }}" data-discount="{{ voucher.discount_percentage }}">
@@ -175,9 +187,10 @@
                     </select>
 
                     <!-- Promo Code Section -->
+                    <!-- Promo Code Section -->
                     <label for="promoCode" class="block text-gray-700 font-semibold">Promo Code (Optional):</label>
                     <select id="promoCode" name="promoCode" class="w-full border rounded-md p-2 mb-4" onchange="applyPromo()">
-                        <option value="" selected>Select a promo code (optional)</option>
+                        <option value="">No Promo Code</option> <!-- Default option -->
                         {% for promo in promotions %}
                             <option value="{{ promo.code }}" 
                                     data-promo-discount="{{ promo.discount }}" 
@@ -217,11 +230,16 @@
 
     <!-- JavaScript -->
     <script>
+
+        let originalPrice;
         function openModal(session, price) {
             document.getElementById('modalSession').textContent = session;
             document.getElementById('modalPrice').textContent = price;
             document.getElementById('sessionInput').value = session;
             document.getElementById('priceInput').value = price;
+
+
+            originalPrice = parseFloat(price);
 
             // Add these lines:
             const subcategoryId = "{{ subcategory.id }}";
@@ -258,38 +276,41 @@
                 priceElement.textContent = originalPrice.toFixed(2);
             }
         }
-
+        
         function applyPromo() {
             const promoDropdown = document.getElementById('promoCode');
             const selectedOption = promoDropdown.options[promoDropdown.selectedIndex];
 
+            // Reset to original price if no valid promo code is selected
             if (!selectedOption || !selectedOption.hasAttribute('data-promo-discount')) {
                 console.log("No valid promo code selected.");
+                promoDropdown.value = ""; // Reset the dropdown
+                document.getElementById('modalPrice').textContent = originalPrice.toFixed(2); // Reset displayed price
+                document.getElementById('priceInput').value = originalPrice.toFixed(2); // Reset input price
                 return;
             }
 
+            // Get promo discount and minimum order values
             const promoDiscount = parseFloat(selectedOption.getAttribute("data-promo-discount") || 0);
             const minOrder = parseFloat(selectedOption.getAttribute("data-min-order") || 0);
 
-            const priceElement = document.getElementById('modalPrice'); 
-            const originalPrice = parseFloat(document.getElementById('priceInput').value);
+            const priceElement = document.getElementById('modalPrice');
 
-            if (isNaN(originalPrice) || originalPrice <= 0) {
-                alert("Invalid original price. Please try again.");
-                return;
-            }
-
+            // Apply promo discount if criteria are met
             if (originalPrice >= minOrder) {
                 const discountedPrice = originalPrice - (originalPrice * (promoDiscount / 100));
-                priceElement.textContent = discountedPrice.toFixed(2);
-                document.getElementById('priceInput').value = discountedPrice.toFixed(2);
+                priceElement.textContent = discountedPrice.toFixed(2); // Update displayed price
+                document.getElementById('priceInput').value = discountedPrice.toFixed(2); // Update input price
             } else {
+                // Reset to original price if criteria are not met
                 alert(`This promo requires a minimum order of $${minOrder.toFixed(2)}.`);
-                promoDropdown.value = "";
-                priceElement.textContent = originalPrice.toFixed(2);
-                document.getElementById('priceInput').value = originalPrice.toFixed(2);
+                promoDropdown.value = ""; // Reset the dropdown
+                priceElement.textContent = originalPrice.toFixed(2); // Reset displayed price
+                document.getElementById('priceInput').value = originalPrice.toFixed(2); // Reset input price
             }
         }
+
+
 
         document.getElementById('testimonialForm').addEventListener('submit', function(event) {
             event.preventDefault();
