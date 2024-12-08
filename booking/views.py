@@ -52,23 +52,12 @@ def fetch_table_ids(table_name, columns):
 
 # View Functions
 
-def edit_order(request, order_id):
-    if request.method == "GET":
-        query = "SELECT * FROM TR_SERVICE_ORDER WHERE Id = %s"
-        with connection.cursor() as cursor:
-            cursor.execute(query, [order_id])
-            order = cursor.fetchone()
-        return render(request, 'edit_order.html', {'order': order})
-    elif request.method == "POST":
-        pass
-
-
 @csrf_exempt
 def cancel_order(request, order_id):
     """
     Cancel from Payment:
-    Changes order status from 'Waiting for Payment' to 'Finding Nearest Worker' 
-    and refunds the user's balance. Does not remove the order entirely.
+    Deletes the order record entirely from TR_SERVICE_ORDER when the user cancels it
+    while it is in 'Waiting for Payment' status. Does not refund any balance.
     """
     if request.method == "DELETE":
         try:
@@ -79,45 +68,33 @@ def cancel_order(request, order_id):
             with connection.cursor() as cursor:
                 # Get order details
                 cursor.execute("""
-                    SELECT TotalPrice, CustomerId FROM TR_SERVICE_ORDER WHERE Id = %s
+                    SELECT CustomerId FROM TR_SERVICE_ORDER WHERE Id = %s
                 """, [order_id])
                 order_data = cursor.fetchone()
                 if not order_data:
                     return JsonResponse({'success': False, 'message': 'Order not found.'}, status=404)
 
-                total_price, customer_id = order_data
+                customer_id = order_data[0]
 
                 # Check ownership
                 if not customer_id or str(customer_id) != user_id:
                     return JsonResponse({'success': False, 'message': 'Unauthorized access to this order.'}, status=401)
 
-                # Update order status to 'Finding Nearest Worker'
-                # We assume the order is currently in 'Waiting for Payment'
-                cursor.execute("""
-                    INSERT INTO TR_ORDER_STATUS (ServiceTrId, StatusId, date)
-                    VALUES (
-                        %s,
-                        (SELECT Id FROM ORDER_STATUS WHERE Status = 'Finding Nearest Worker'),
-                        CURRENT_TIMESTAMP
-                    )
-                """, [order_id])
+                # Remove associated TR_ORDER_STATUS entries first (due to FK constraint)
+                cursor.execute("DELETE FROM TR_ORDER_STATUS WHERE ServiceTrId = %s", [order_id])
 
-                # Refund user's balance
-                cursor.execute("""
-                    UPDATE USERS
-                    SET mypaybalance = mypaybalance + %s
-                    WHERE Id = %s
-                """, [total_price, user_id])
+                # Delete the order from TR_SERVICE_ORDER
+                cursor.execute("DELETE FROM TR_SERVICE_ORDER WHERE Id = %s", [order_id])
 
             return JsonResponse({
                 'success': True,
-                'message': 'Order moved to waiting for workers.',
-                'refund_amount': float(total_price)
+                'message': 'Order has been canceled and removed.'
             })
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
     return JsonResponse({'success': False, 'message': 'Invalid request method.'}, status=405)
+
 
 
 @csrf_exempt

@@ -53,11 +53,6 @@
                                         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md mb-2">
                                         Pay Now
                                     </button>
-                                    <button 
-                                        onclick="editOrder('{{ order.id }}')" 
-                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md mb-2">
-                                        Edit
-                                    </button>
                                     <!-- Cancel from Payment -->
                                     <button 
                                         onclick="cancelFromPayment('{{ order.id }}')" 
@@ -206,7 +201,7 @@
 
         // Cancel from Payment: Move to waiting for workers + restore balance
         function cancelFromPayment(orderId) {
-            if (confirm("Canceling from payment will move the order to 'Waiting for Workers' and restore balance. Proceed?")) {
+            if (confirm("Canceling this order will completely remove it. Proceed?")) {
                 fetch(`/cancel-order/${orderId}/`, {
                     method: 'DELETE',
                     headers: {
@@ -218,27 +213,11 @@
                 .then(data => {
                     if (data.success) {
                         alert(data.message);
-                        // Move the order row from waiting_for_payment to waiting_for_workers
+                        // Remove the row from the table
                         const row = document.querySelector(`[data-order-id="${orderId}"]`);
                         if (row) {
                             row.remove();
-                            const waitingWorkersTbody = document.getElementById('waitingWorkersTbody');
-
-                            // Update the action cell to reflect waiting for workers scenario
-                            const cells = row.querySelectorAll('td');
-                            const actionCell = cells[cells.length - 1];
-                            // Removed View Details button here
-                            actionCell.innerHTML = `
-                                <button onclick="cancelFromWorkers('${orderId}')"
-                                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md">
-                                    Cancel
-                                </button>
-                            `;
-
-                            waitingWorkersTbody.appendChild(row);
                         }
-                        // Update balance after cancellation
-                        updateBalanceDisplay();
                     } else {
                         alert(data.message || "Failed to cancel the order.");
                     }
@@ -248,6 +227,8 @@
                 });
             }
         }
+
+
 
         // Cancel from Workers: Remove the order entirely and update balance
         function cancelFromWorkers(orderId) {
@@ -275,14 +256,6 @@
                 .catch(error => {
                     alert(`Error: ${error.message}`);
                 });
-            }
-        }
-
-        function editOrder(orderId) {
-            try {
-                window.location.href = `/edit-order/${orderId}/`;
-            } catch (error) {
-                alert(`Error: Unable to navigate to edit page. ${error.message}`);
             }
         }
 
