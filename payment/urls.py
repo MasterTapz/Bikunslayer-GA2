@@ -4,6 +4,8 @@ from .views import (
     MyPay_Transaction,
     ServiceJob_Status,
     ServiceJob,
+    accept_order,
+    fetch_subcategories,
     get_users,
     get_tr_mypay,
     get_tr_mypay_categories,
@@ -25,4 +27,8 @@ urlpatterns = [
     path('mypay/service-payment/', views.service_payment, name='service_payment'),
     path('mypay/transfer/', views.transfer, name='transfer'),
     path('mypay/withdrawal/', views.withdrawal, name='withdrawal'),
+    path("fetch-subcategories/", fetch_subcategories, name="fetch_subcategories"),
+    path("accept-order/", accept_order, name="accept_order"),
+
+
 ]
