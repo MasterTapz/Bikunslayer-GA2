@@ -74,23 +74,48 @@
             </div>
         </div>
 
-        <!-- Workers Section -->
-        <div class="mb-8">
-            <h2 class="text-xl font-semibold mb-4">Available Workers</h2>
-            <div class="grid grid-cols-2 gap-4">
-                {% if workers %}
-                    {% for worker in workers %}
-                    <div class="bg-gray-50 shadow-md rounded-md p-4">
-                        <p class="font-semibold">Worker: {{ worker.workername }}</p>
-                        <p>Bank: {{ worker.bankname }}</p>
-                        <p>Rating: {{ worker.rate }}</p>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="text-gray-500">No workers available for this subcategory.</p>
-                {% endif %}
+       <!-- Workers Section -->
+       <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">Available Workers</h2>
+        <div class="grid grid-cols-2 gap-4">
+            {% if workers %}
+                {% for worker in workers %}
+                <div 
+                    class="bg-gray-50 shadow-md rounded-md p-4 cursor-pointer"
+                    onclick="openWorkerModal('{{ worker.id }}', '{{ worker.workername }}', '{{ worker.bankname }}', '{{ worker.rate }}')">
+                    <p class="font-semibold">Worker: {{ worker.workername }}</p>
+                    <p>Bank: {{ worker.bankname }}</p>
+                    <p>Rating: {{ worker.rate }}</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-gray-500">No workers available for this subcategory.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Worker Profile Modal -->
+    <div id="workerProfileModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-lg w-1/2 p-6 relative">
+            <button 
+                class="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                onclick="closeWorkerModal()">
+                ✕
+            </button>
+            <h2 class="text-xl font-semibold mb-4" id="workerName">Worker Name</h2>
+            <div class="space-y-2">
+                <p><strong>Sex:</strong> <span id="workerSex"></span></p>
+                <p><strong>Phone Number:</strong> <span id="workerPhoneNumber"></span></p>
+                <p><strong>Birth Date:</strong> <span id="workerBirthDate"></span></p>
+                <p><strong>Address:</strong> <span id="workerAddress"></span></p>
+                <p><strong>Completed Orders Count:</strong> <span id="workerOrdersCount"></span></p>
+                <p><strong>Job Categories:</strong></p>
+                <ul class="list-disc pl-6" id="workerJobCategories"></ul>
             </div>
         </div>
+    </div>
+    
+
 
 
         <!-- Testimonials Section -->
@@ -338,6 +363,45 @@
             })
             .catch(error => console.error('Error:', error));
         });
+
+        function openWorkerModal(workerId) {
+    fetch(`/get-worker-details/${workerId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate modal with worker details
+                document.getElementById('workerName').textContent = data.worker.name;
+                document.getElementById('workerSex').textContent = data.worker.sex;
+                document.getElementById('workerPhoneNumber').textContent = data.worker.phone_number;
+                document.getElementById('workerBirthDate').textContent = data.worker.birthdate;
+                document.getElementById('workerAddress').textContent = data.worker.address;
+                document.getElementById('workerOrdersCount').textContent = data.worker.total_finish_order;
+
+                // Populate job categories
+                const jobCategoriesList = document.getElementById('workerJobCategories');
+                jobCategoriesList.innerHTML = '';
+                data.worker.job_categories.forEach(category => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = category;
+                    jobCategoriesList.appendChild(listItem);
+                });
+
+                // Show modal
+                document.getElementById('workerProfileModal').classList.remove('hidden');
+            } else {
+                alert(data.message || 'Failed to fetch worker details.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while fetching worker details.');
+        });
+}
+
+function closeWorkerModal() {
+    document.getElementById('workerProfileModal').classList.add('hidden');
+}
+
     </script>
 </body>
 </html>

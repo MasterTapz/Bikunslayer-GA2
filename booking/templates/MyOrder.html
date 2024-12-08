@@ -36,6 +36,7 @@
                     <tr>
                         <th class="px-4 py-2 border border-gray-300">Order Date</th>
                         <th class="px-4 py-2 border border-gray-300">Service Date</th>
+                        <th class="px-4 py-2 border border-gray-300">Subcategory</th>
                         <th class="px-4 py-2 border border-gray-300">Total Price</th>
                         <th class="px-4 py-2 border border-gray-300 text-center">Action</th>
                     </tr>
@@ -46,6 +47,7 @@
                             <tr class="hover:bg-gray-100" data-order-id="{{ order.id }}">
                                 <td class="px-4 py-2 border border-gray-300">{{ order.order_date }}</td>
                                 <td class="px-4 py-2 border border-gray-300">{{ order.service_date }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.subcategory }}</td>
                                 <td class="px-4 py-2 border border-gray-300 text-right">${{ order.total_price }}</td>
                                 <td class="px-4 py-2 border border-gray-300 text-center">
                                     <button 
@@ -53,7 +55,6 @@
                                         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md mb-2">
                                         Pay Now
                                     </button>
-                                    <!-- Cancel from Payment -->
                                     <button 
                                         onclick="cancelFromPayment('{{ order.id }}')" 
                                         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md">
@@ -64,7 +65,7 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="4" class="text-center text-gray-500 px-4 py-6">
+                            <td colspan="5" class="text-center text-gray-500 px-4 py-6">
                                 No orders waiting for payment.
                             </td>
                         </tr>
@@ -75,12 +76,13 @@
 
         <!-- Waiting for Workers Section -->
         <h2 class="text-xl font-semibold mb-4">Waiting for Workers</h2>
-        <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="bg-white shadow-md rounded-lg overflow-hidden mb-8">
             <table class="w-full border-collapse border border-gray-300">
                 <thead class="bg-gray-200 text-left">
                     <tr>
                         <th class="px-4 py-2 border border-gray-300">Order Date</th>
                         <th class="px-4 py-2 border border-gray-300">Service Date</th>
+                        <th class="px-4 py-2 border border-gray-300">Subcategory</th>
                         <th class="px-4 py-2 border border-gray-300">Worker</th>
                         <th class="px-4 py-2 border border-gray-300 text-center">Action</th>
                     </tr>
@@ -91,9 +93,9 @@
                             <tr class="hover:bg-gray-100" data-order-id="{{ order.id }}">
                                 <td class="px-4 py-2 border border-gray-300">{{ order.order_date }}</td>
                                 <td class="px-4 py-2 border border-gray-300">{{ order.service_date }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.subcategory }}</td>
                                 <td class="px-4 py-2 border border-gray-300">{{ order.worker|default:"Not Assigned" }}</td>
                                 <td class="px-4 py-2 border border-gray-300 text-center">
-                                    <!-- Removed the "View Details" button, leaving only "Cancel" -->
                                     <button 
                                         onclick="cancelFromWorkers('{{ order.id }}')" 
                                         class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md">
@@ -104,8 +106,42 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="4" class="text-center text-gray-500 px-4 py-6">
+                            <td colspan="5" class="text-center text-gray-500 px-4 py-6">
                                 No orders waiting for workers.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- In Progress Section -->
+        <h2 class="text-xl font-semibold mb-4">In Progress</h2>
+        <div class="bg-white shadow-md rounded-lg overflow-hidden mb-8">
+            <table class="w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-200 text-left">
+                    <tr>
+                        <th class="px-4 py-2 border border-gray-300">Order Date</th>
+                        <th class="px-4 py-2 border border-gray-300">Service Date</th>
+                        <th class="px-4 py-2 border border-gray-300">Subcategory</th>
+                        <th class="px-4 py-2 border border-gray-300">Worker</th>
+                    </tr>
+                </thead>
+                <tbody id="inProgressTbody">
+                    {% if in_progress_orders %}
+                        {% for order in in_progress_orders %}
+                            <tr class="hover:bg-gray-100" data-order-id="{{ order.id }}">
+                                <td class="px-4 py-2 border border-gray-300">{{ order.order_date }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.service_date }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.subcategory }}</td>
+                                <td class="px-4 py-2 border border-gray-300">{{ order.worker }}</td>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-gray-500 px-4 py-6">
+                                No orders in progress.
                             </td>
                         </tr>
                     {% endif %}
@@ -132,6 +168,7 @@
         let selectedOrderId = null;
         let totalPrice = 0;
 
+        // Fetch balance and update UI
         function updateBalanceDisplay() {
             fetch('/get-customer-balance/')
                 .then(response => response.json())
@@ -148,93 +185,10 @@
                 });
         }
 
-        function openPaymentModal(orderId, price) {
-            selectedOrderId = orderId;
-            totalPrice = price;
-            document.getElementById('paymentAmount').innerText = `Total Price: $${price}`;
-            fetch('/get-customer-balance/')
-                .then(response => response.json())
-                .then(data => {
-                    console.log("Balance fetch result:", data);
-                    if (data.balance !== undefined) {
-                        document.getElementById('balanceInfo').innerText = `Your Balance: $${data.balance}`;
-                    } else {
-                        document.getElementById('balanceInfo').innerText = `Failed to fetch balance.`;
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching balance:", error);
-                    document.getElementById('balanceInfo').innerText = `Error fetching balance.`;
-                });
-            document.getElementById('paymentModal').classList.remove('hidden');
-        }
-
-        function closePaymentModal() {
-            document.getElementById('paymentModal').classList.add('hidden');
-            selectedOrderId = null;
-            totalPrice = 0;
-        }
-
-        function processPayment() {
-            fetch(`/pay-order/${selectedOrderId}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                },
-                body: JSON.stringify({ total_price: totalPrice })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    updateBalanceDisplay();
-                    location.reload();
-                } else {
-                    alert(data.message || 'Payment failed.');
-                }
-            })
-            .catch(error => {
-                alert('An error occurred while processing payment.');
-            });
-        }
-
-        // Cancel from Payment: Move to waiting for workers + restore balance
-        function cancelFromPayment(orderId) {
-            if (confirm("Canceling this order will completely remove it. Proceed?")) {
-                fetch(`/cancel-order/${orderId}/`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCSRFToken()
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        // Remove the row from the table
-                        const row = document.querySelector(`[data-order-id="${orderId}"]`);
-                        if (row) {
-                            row.remove();
-                        }
-                    } else {
-                        alert(data.message || "Failed to cancel the order.");
-                    }
-                })
-                .catch(error => {
-                    alert(`Error: ${error.message}`);
-                });
-            }
-        }
-
-
-
-        // Cancel from Workers: Remove the order entirely and update balance
-        function cancelFromWorkers(orderId) {
-            if (confirm("Canceling from workers will remove the order completely and refund the balance. Proceed?")) {
-                fetch(`/cancel-worker-order/${orderId}/`, { // Assume a separate endpoint or logic
-                    method: 'DELETE',
+        function markOrderCompleted(orderId) {
+            if (confirm("Mark this order as completed?")) {
+                fetch(`/complete-order/${orderId}/`, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': getCSRFToken()
@@ -248,9 +202,8 @@
                         if (row) {
                             row.remove();
                         }
-                        updateBalanceDisplay();
                     } else {
-                        alert(data.message || "Failed to cancel the order.");
+                        alert(data.message || "Failed to mark the order as completed.");
                     }
                 })
                 .catch(error => {
@@ -263,7 +216,6 @@
             return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         }
 
-        // On page load, fetch and display current user balance
         document.addEventListener('DOMContentLoaded', () => {
             updateBalanceDisplay();
         });
