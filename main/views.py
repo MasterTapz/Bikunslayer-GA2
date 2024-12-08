@@ -331,6 +331,15 @@ def worker_profile(request):
             WHERE u.Id = %s
         """, [worker_id])
         worker_data = cursor.fetchone()
+        
+        # Fetch the worker's job categories
+        cursor.execute("""
+            SELECT sc.CategoryName 
+            FROM WORKER_SERVICE_CATEGORY wsc
+            JOIN SERVICE_CATEGORY sc ON wsc.ServiceCategoryId = sc.Id
+            WHERE wsc.WorkerId = %s
+        """, [worker_id])
+        job_categories = [row[0] for row in cursor.fetchall()]
 
     profile_data = {
         "name": worker_data[0],
@@ -346,6 +355,7 @@ def worker_profile(request):
         "rate": worker_data[10],
         "total_finish_order": worker_data[11],
         "pic_url": worker_data[12],
+        "job_categories": job_categories,
     }
 
     return render(request, "worker_profile.html", {"profile": profile_data})
