@@ -1,3 +1,4 @@
+from pyexpat.errors import messages
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.db import connection
 from django.shortcuts import redirect, render
@@ -147,7 +148,8 @@ def cancel_worker_order(request, order_id):
 
 def my_orders(request):
     """
-    View to fetch and display all orders of the logged-in customer, including default statuses.
+    View to fetch and display all orders of the logged-in customer, 
+    including waiting for payment, waiting for workers, and in-progress orders.
     """
     customer_id = request.session.get("user_id")
 
@@ -159,17 +161,13 @@ def my_orders(request):
             tso.Id AS id,
             tso.OrderDate AS order_date,
             tso.ServiceDate AS service_date,
-            tso.ServiceTime AS service_time,
             ss.SubCategoryName AS subcategory,
-            tso.Session AS session,
             tso.TotalPrice AS total_price,
-            tso.DiscountCode AS discount_code,
-            pm.Name AS payment_method,
             u.Name AS worker,
-            COALESCE(os.Status, 'Waiting for Payment') AS status
+            COALESCE(os.Status, 'Waiting for Payment') AS status,
+            tso.WorkerId AS worker_id
         FROM TR_SERVICE_ORDER tso
         LEFT JOIN SERVICE_SUBCATEGORY ss ON tso.ServiceSubCategoryId = ss.Id
-        LEFT JOIN PAYMENT_METHOD pm ON tso.PaymentMethodId = pm.Id
         LEFT JOIN WORKER w ON tso.WorkerId = w.Id
         LEFT JOIN USERS u ON w.Id = u.Id
         LEFT JOIN TR_ORDER_STATUS tos ON tso.Id = tos.ServiceTrId
@@ -184,18 +182,16 @@ def my_orders(request):
             for row in cursor.fetchall()
         ]
 
-    # Separate orders into categories
+    # Categorize orders
     waiting_for_payment = [order for order in orders if order['status'] == 'Waiting for Payment']
-    waiting_for_workers = [order for order in orders if order['status'] == 'Finding Nearest Worker']
+    waiting_for_workers = [order for order in orders if order['status'] == 'Finding Nearest Worker' and order['worker_id'] is None]
+    in_progress_orders = [order for order in orders if order['worker_id'] is not None]  # Correctly identify in-progress orders
 
     return render(request, 'MyOrder.html', {
         'waiting_for_payment': waiting_for_payment,
-        'waiting_for_workers': waiting_for_workers
+        'waiting_for_workers': waiting_for_workers,
+        'in_progress_orders': in_progress_orders,  # Added to render in-progress orders
     })
-
-
-
-from django.contrib import messages
 
 def book_service(request, subcategory_id, session):
     """
@@ -312,6 +308,50 @@ def book_service(request, subcategory_id, session):
             return JsonResponse({'error': f"An error occurred: {str(e)}"}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+def get_worker_details(request, worker_id):
+    try:
+        with connection.cursor() as cursor:
+            # Fetch worker details
+            cursor.execute("""
+                SELECT u.Name, u.Sex, u.PhoneNum, u.DoB, u.Address,
+                       w.Rate, w.TotalFinishOrder
+                FROM users u
+                JOIN worker w ON u.Id = w.Id
+                WHERE w.Id = %s
+            """, [worker_id])
+            worker_data = cursor.fetchone()
+            
+            if not worker_data:
+                return JsonResponse({'success': False, 'message': 'Worker not found.'})
+            
+            # Fetch job categories
+            cursor.execute("""
+                SELECT sc.CategoryName
+                FROM WORKER_SERVICE_CATEGORY wsc
+                JOIN SERVICE_CATEGORY sc ON wsc.ServiceCategoryId = sc.Id
+                WHERE wsc.WorkerId = %s
+            """, [worker_id])
+            job_categories = [row[0] for row in cursor.fetchall()]
+
+            # Prepare data
+            profile_data = {
+                "name": worker_data[0],
+                "sex": worker_data[1],
+                "phone_number": worker_data[2],
+                "birthdate": worker_data[3],
+                "address": worker_data[4],
+                "rate": worker_data[5],
+                "total_finish_order": worker_data[6],
+                "job_categories": job_categories,
+            }
+
+            return JsonResponse({'success': True, 'worker': profile_data})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+
 
 @csrf_exempt
 def process_payment(request, order_id):
@@ -519,8 +559,6 @@ def view_categories(request):
     return render(request, 'categories.html', {'categories': categories})
 
 
-
-# Fetching Functions
 
 def check_worker_join_status(worker_id, subcategory_id):
     query = """

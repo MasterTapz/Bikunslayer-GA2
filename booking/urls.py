@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import book_service, cancel_order, cancel_worker_order, check_all_ids, check_database_connection, create_testimonial_for_subcategory, get_customer_balance, join_subcategory, leave_subcategory, my_orders, process_payment,view_categories,view_subcategory_detail,view_subcategory_detail_worker
+from .views import book_service, cancel_order, cancel_worker_order, check_all_ids, check_database_connection, create_testimonial_for_subcategory, get_customer_balance, get_worker_details, join_subcategory, leave_subcategory, my_orders, process_payment,view_categories,view_subcategory_detail,view_subcategory_detail_worker
 
 urlpatterns = [
     path('check-db/', check_database_connection),
@@ -16,7 +16,9 @@ urlpatterns = [
     path('cancel-worker-order/<uuid:order_id>/', cancel_worker_order, name='cancel_worker_order'),
     path('create-testimonial/<uuid:subcategory_id>/', create_testimonial_for_subcategory, name='create_testimonial_for_subcategory'),
     path('get-customer-balance/', get_customer_balance, name='get_customer_balance'),
-    path('pay-order/<uuid:order_id>/', process_payment, name='process_payment')
+    path('pay-order/<uuid:order_id>/', process_payment, name='process_payment'),
+    path('get-worker-details/<uuid:worker_id>/', get_worker_details, name='get_worker_details'),
+
 
 
 
