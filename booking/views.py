@@ -193,14 +193,20 @@ def my_orders(request):
         'in_progress_orders': in_progress_orders,  # Added to render in-progress orders
     })
 
+from django.shortcuts import render, redirect
+from django.http import JsonResponse
+from decimal import Decimal
+from django.db import connection
+from datetime import datetime
+
 def book_service(request, subcategory_id, session):
     """
     Handle booking a service session.
     """
     if request.method == "POST":
         try:
-            # Retrieve values from the POST request
-            price = Decimal(request.POST.get("price"))  # Convert price to Decimal
+            # Retrieve form data
+            price = Decimal(request.POST.get("price"))
             service_date = request.POST.get("serviceDate")
             service_time = request.POST.get("serviceTime")
             worker_id = request.POST.get("workerId")
@@ -212,7 +218,6 @@ def book_service(request, subcategory_id, session):
             # Apply discount code if provided
             if discount_code:
                 with connection.cursor() as cursor:
-                    # Fetch voucher details including expiration date and usage limit
                     cursor.execute("""
                         SELECT tvp.ExpirationDate, v.UserQuota, tvp.AlreadyUse
                         FROM VOUCHER v
@@ -222,21 +227,15 @@ def book_service(request, subcategory_id, session):
                     voucher_data = cursor.fetchone()
 
                     if not voucher_data:
-                        messages.error(request, 'Invalid voucher code.')
-                        return redirect('subcategory_detail', subcategory_id=subcategory_id)
-                        
+                        return JsonResponse({'success': False, 'error': 'Invalid voucher code.'}, status=400)
 
                     expiration_date, usage_limit, already_used = voucher_data
 
-                    # Check if the voucher is expired
                     if expiration_date < datetime.now().date():
-                        messages.error(request, 'This voucher has expired.')
-                        return redirect('subcategory_detail', subcategory_id=subcategory_id)
+                        return JsonResponse({'success': False, 'error': 'This voucher has expired.'}, status=400)
 
-                    # Check if the voucher has reached its usage limit
                     if already_used >= usage_limit:
-                        messages.error(request, 'This voucher has reached its usage limit.')
-                        return redirect('subcategory_detail', subcategory_id=subcategory_id)
+                        return JsonResponse({'success': False, 'error': 'This voucher has reached its usage limit.'}, status=400)
 
                     # Mark the voucher as used
                     cursor.execute("""
@@ -245,7 +244,7 @@ def book_service(request, subcategory_id, session):
                         WHERE VoucherId = %s AND CustomerId = %s
                     """, [discount_code, customer_id])
 
-                    # Fetch the discount percentage and apply the discount
+                    # Apply the discount
                     cursor.execute("""
                         SELECT d.Discount
                         FROM DISCOUNT d
@@ -256,7 +255,6 @@ def book_service(request, subcategory_id, session):
                     if discount_data:
                         discount_percentage = Decimal(discount_data[0])
                         price -= price * (discount_percentage / Decimal(100))
-
 
             # Apply promo code if provided
             if promo_code:
@@ -270,22 +268,14 @@ def book_service(request, subcategory_id, session):
                     promo_data = cursor.fetchone()
 
                     if promo_data:
-                        promo_discount, min_order, offer_end_date = list(map(Decimal, promo_data[:2])) + [promo_data[2]]
-
-                        # Validate promo code expiration
+                        promo_discount, min_order, offer_end_date = promo_data
                         if offer_end_date < datetime.now().date():
-                            return JsonResponse({'error': 'The promo code has expired.'}, status=400)
+                            return JsonResponse({'success': False, 'error': 'The promo code has expired.'}, status=400)
 
-                        # Validate minimum transaction order
-                        if Decimal(request.POST.get("price")) < min_order:
-                            return JsonResponse({'error': 'Order does not meet the minimum requirement for this promo code.'}, status=400)
+                        if Decimal(request.POST.get("price")) < Decimal(min_order):
+                            return JsonResponse({'success': False, 'error': 'Order does not meet the minimum requirement for this promo code.'}, status=400)
 
-                        # Trust the frontend and DO NOT apply the discount again
-                        # The backend should only validate, not modify, the price.
-
-
-
-            # Insert into TR_SERVICE_ORDER
+            # Insert booking record into TR_SERVICE_ORDER
             query = """
                 INSERT INTO TR_SERVICE_ORDER (
                     Id, OrderDate, ServiceDate, ServiceTime, CustomerId,
@@ -301,13 +291,15 @@ def book_service(request, subcategory_id, session):
                     subcategory_id, session, price, discount_code, payment_method_id
                 ])
 
-            messages.success(request, 'Service booked successfully!')
+            # Redirect to the subcategory detail page
             return redirect('subcategory_detail', subcategory_id=subcategory_id)
 
         except Exception as e:
-            return JsonResponse({'error': f"An error occurred: {str(e)}"}, status=500)
+            return JsonResponse({'success': False, 'error': f"An error occurred: {str(e)}"}, status=500)
 
-    return JsonResponse({'error': 'Invalid request method'}, status=405)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+
 
 
 def get_worker_details(request, worker_id):
