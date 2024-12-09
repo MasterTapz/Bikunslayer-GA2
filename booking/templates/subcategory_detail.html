@@ -74,49 +74,46 @@
             </div>
         </div>
 
-       <!-- Workers Section -->
-       <div class="mb-8">
-        <h2 class="text-xl font-semibold mb-4">Available Workers</h2>
-        <div class="grid grid-cols-2 gap-4">
-            {% if workers %}
-                {% for worker in workers %}
-                <div 
-                    class="bg-gray-50 shadow-md rounded-md p-4 cursor-pointer"
-                    onclick="openWorkerModal('{{ worker.id }}', '{{ worker.workername }}', '{{ worker.bankname }}', '{{ worker.rate }}')">
-                    <p class="font-semibold">Worker: {{ worker.workername }}</p>
-                    <p>Bank: {{ worker.bankname }}</p>
-                    <p>Rating: {{ worker.rate }}</p>
-                </div>
-                {% endfor %}
-            {% else %}
-                <p class="text-gray-500">No workers available for this subcategory.</p>
-            {% endif %}
-        </div>
-    </div>
-    
-    <!-- Worker Profile Modal -->
-    <div id="workerProfileModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-lg w-1/2 p-6 relative">
-            <button 
-                class="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-                onclick="closeWorkerModal()">
-                ✕
-            </button>
-            <h2 class="text-xl font-semibold mb-4" id="workerName">Worker Name</h2>
-            <div class="space-y-2">
-                <p><strong>Sex:</strong> <span id="workerSex"></span></p>
-                <p><strong>Phone Number:</strong> <span id="workerPhoneNumber"></span></p>
-                <p><strong>Birth Date:</strong> <span id="workerBirthDate"></span></p>
-                <p><strong>Address:</strong> <span id="workerAddress"></span></p>
-                <p><strong>Completed Orders Count:</strong> <span id="workerOrdersCount"></span></p>
-                <p><strong>Job Categories:</strong></p>
-                <ul class="list-disc pl-6" id="workerJobCategories"></ul>
+        <!-- Workers Section -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">Available Workers</h2>
+            <div class="grid grid-cols-2 gap-4">
+                {% if workers %}
+                    {% for worker in workers %}
+                    <div 
+                        class="bg-gray-50 shadow-md rounded-md p-4 cursor-pointer"
+                        onclick="openWorkerModal('{{ worker.id }}')">
+                        <p class="font-semibold">Worker: {{ worker.workername }}</p>
+                        <p>Bank: {{ worker.bankname }}</p>
+                        <p>Rating: {{ worker.rate }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500">No workers available for this subcategory.</p>
+                {% endif %}
             </div>
         </div>
-    </div>
-    
-
-
+        
+        <!-- Worker Profile Modal -->
+        <div id="workerProfileModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg shadow-lg w-1/2 p-6 relative">
+                <button 
+                    class="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                    onclick="closeWorkerModal()">
+                    ✕
+                </button>
+                <h2 class="text-xl font-semibold mb-4" id="workerName">Worker Name</h2>
+                <div class="space-y-2">
+                    <p><strong>Sex:</strong> <span id="workerSex"></span></p>
+                    <p><strong>Phone Number:</strong> <span id="workerPhoneNumber"></span></p>
+                    <p><strong>Birth Date:</strong> <span id="workerBirthDate"></span></p>
+                    <p><strong>Address:</strong> <span id="workerAddress"></span></p>
+                    <p><strong>Completed Orders Count:</strong> <span id="workerOrdersCount"></span></p>
+                    <p><strong>Job Categories:</strong></p>
+                    <ul class="list-disc pl-6" id="workerJobCategories"></ul>
+                </div>
+            </div>
+        </div>
 
         <!-- Testimonials Section -->
         <div class="mb-8">
@@ -186,7 +183,7 @@
         </div>
 
 
-        <!-- Booking Modal (No Worker Selection) -->
+        <!-- Booking Modal -->
         <div id="bookingModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden flex items-center justify-center">
             <div class="bg-white rounded-lg shadow-lg w-96 p-6">
                 <h2 class="text-xl font-bold mb-4">Book Service</h2>
@@ -196,10 +193,9 @@
                     {% csrf_token %}
 
                     <!-- Discount Code Section -->
-                    <!-- Discount Code Section -->
                     <label for="discountCode" class="block text-gray-700 font-semibold">Discount Code (Optional):</label>
                     <select id="discountCode" name="discountCode" class="w-full border rounded-md p-2 mb-4" onchange="applyDiscount()">
-                        <option value="">No Discount Code</option> <!-- Default option -->
+                        <option value="">No Discount Code</option>
                         {% if user_vouchers %}
                             {% for voucher in user_vouchers %}
                                 <option value="{{ voucher.voucher_code }}" data-discount="{{ voucher.discount_percentage }}">
@@ -212,10 +208,9 @@
                     </select>
 
                     <!-- Promo Code Section -->
-                    <!-- Promo Code Section -->
                     <label for="promoCode" class="block text-gray-700 font-semibold">Promo Code (Optional):</label>
                     <select id="promoCode" name="promoCode" class="w-full border rounded-md p-2 mb-4" onchange="applyPromo()">
-                        <option value="">No Promo Code</option> <!-- Default option -->
+                        <option value="">No Promo Code</option>
                         {% for promo in promotions %}
                             <option value="{{ promo.code }}" 
                                     data-promo-discount="{{ promo.discount }}" 
@@ -255,25 +250,22 @@
 
     <!-- JavaScript -->
     <script>
-
         let originalPrice;
+
         function openModal(session, price) {
             document.getElementById('modalSession').textContent = session;
             document.getElementById('modalPrice').textContent = price;
             document.getElementById('sessionInput').value = session;
             document.getElementById('priceInput').value = price;
 
-
             originalPrice = parseFloat(price);
 
-            // Add these lines:
             const subcategoryId = "{{ subcategory.id }}";
             const form = document.getElementById('bookingForm');
             form.action = `/book-service/${subcategoryId}/${session}/`;
 
             document.getElementById('bookingModal').classList.remove('hidden');
         }
-
 
         function closeModal() {
             document.getElementById('bookingModal').classList.add('hidden');
@@ -290,15 +282,14 @@
         function applyDiscount() {
             const discountDropdown = document.getElementById('discountCode');
             const discountPercentage = discountDropdown.options[discountDropdown.selectedIndex]?.getAttribute("data-discount");
-
             const priceElement = document.getElementById('modalPrice'); 
-            const originalPrice = parseFloat(document.getElementById('priceInput').value);
+            const originalPriceValue = parseFloat(document.getElementById('priceInput').value);
 
             if (discountPercentage) {
-                const discountedPrice = originalPrice - (originalPrice * (parseFloat(discountPercentage) / 100));
+                const discountedPrice = originalPriceValue - (originalPriceValue * (parseFloat(discountPercentage) / 100));
                 priceElement.textContent = discountedPrice.toFixed(2);
             } else {
-                priceElement.textContent = originalPrice.toFixed(2);
+                priceElement.textContent = originalPriceValue.toFixed(2);
             }
         }
         
@@ -309,33 +300,28 @@
             // Reset to original price if no valid promo code is selected
             if (!selectedOption || !selectedOption.hasAttribute('data-promo-discount')) {
                 console.log("No valid promo code selected.");
-                promoDropdown.value = ""; // Reset the dropdown
-                document.getElementById('modalPrice').textContent = originalPrice.toFixed(2); // Reset displayed price
-                document.getElementById('priceInput').value = originalPrice.toFixed(2); // Reset input price
+                promoDropdown.value = ""; 
+                document.getElementById('modalPrice').textContent = originalPrice.toFixed(2);
+                document.getElementById('priceInput').value = originalPrice.toFixed(2);
                 return;
             }
 
             // Get promo discount and minimum order values
             const promoDiscount = parseFloat(selectedOption.getAttribute("data-promo-discount") || 0);
             const minOrder = parseFloat(selectedOption.getAttribute("data-min-order") || 0);
-
             const priceElement = document.getElementById('modalPrice');
 
-            // Apply promo discount if criteria are met
             if (originalPrice >= minOrder) {
                 const discountedPrice = originalPrice - (originalPrice * (promoDiscount / 100));
-                priceElement.textContent = discountedPrice.toFixed(2); // Update displayed price
-                document.getElementById('priceInput').value = discountedPrice.toFixed(2); // Update input price
+                priceElement.textContent = discountedPrice.toFixed(2);
+                document.getElementById('priceInput').value = discountedPrice.toFixed(2);
             } else {
-                // Reset to original price if criteria are not met
                 alert(`This promo requires a minimum order of $${minOrder.toFixed(2)}.`);
-                promoDropdown.value = ""; // Reset the dropdown
-                priceElement.textContent = originalPrice.toFixed(2); // Reset displayed price
-                document.getElementById('priceInput').value = originalPrice.toFixed(2); // Reset input price
+                promoDropdown.value = ""; 
+                priceElement.textContent = originalPrice.toFixed(2);
+                document.getElementById('priceInput').value = originalPrice.toFixed(2);
             }
         }
-
-
 
         document.getElementById('testimonialForm').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -343,6 +329,7 @@
             const subcategoryId = "{{ subcategory.id }}";
             const comment = document.getElementById('comment').value;
             const rating = document.getElementById('rating').value;
+            const workerId = document.getElementById('workerId').value;
 
             fetch(`/create-testimonial/${subcategoryId}/`, {
                 method: 'POST',
@@ -350,7 +337,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify({ comment, rating })
+                body: JSON.stringify({ comment, rating, workerId })
             })
             .then(response => response.json())
             .then(data => {
@@ -358,50 +345,49 @@
                     alert(data.message);
                     location.reload();
                 } else {
-                    alert(data.message);
+                    alert(data.message || 'Failed to create testimonial.');
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unexpected error occurred while creating the testimonial.');
+            });
         });
 
         function openWorkerModal(workerId) {
-    fetch(`/get-worker-details/${workerId}/`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Populate modal with worker details
-                document.getElementById('workerName').textContent = data.worker.name;
-                document.getElementById('workerSex').textContent = data.worker.sex;
-                document.getElementById('workerPhoneNumber').textContent = data.worker.phone_number;
-                document.getElementById('workerBirthDate').textContent = data.worker.birthdate;
-                document.getElementById('workerAddress').textContent = data.worker.address;
-                document.getElementById('workerOrdersCount').textContent = data.worker.total_finish_order;
+            fetch(`/get-worker-details/${workerId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('workerName').textContent = data.worker.name;
+                        document.getElementById('workerSex').textContent = data.worker.sex;
+                        document.getElementById('workerPhoneNumber').textContent = data.worker.phone_number;
+                        document.getElementById('workerBirthDate').textContent = data.worker.birthdate;
+                        document.getElementById('workerAddress').textContent = data.worker.address;
+                        document.getElementById('workerOrdersCount').textContent = data.worker.total_finish_order;
 
-                // Populate job categories
-                const jobCategoriesList = document.getElementById('workerJobCategories');
-                jobCategoriesList.innerHTML = '';
-                data.worker.job_categories.forEach(category => {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = category;
-                    jobCategoriesList.appendChild(listItem);
+                        const jobCategoriesList = document.getElementById('workerJobCategories');
+                        jobCategoriesList.innerHTML = '';
+                        data.worker.job_categories.forEach(category => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = category;
+                            jobCategoriesList.appendChild(listItem);
+                        });
+
+                        document.getElementById('workerProfileModal').classList.remove('hidden');
+                    } else {
+                        alert(data.message || 'Failed to fetch worker details.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while fetching worker details.');
                 });
+        }
 
-                // Show modal
-                document.getElementById('workerProfileModal').classList.remove('hidden');
-            } else {
-                alert(data.message || 'Failed to fetch worker details.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while fetching worker details.');
-        });
-}
-
-function closeWorkerModal() {
-    document.getElementById('workerProfileModal').classList.add('hidden');
-}
-
+        function closeWorkerModal() {
+            document.getElementById('workerProfileModal').classList.add('hidden');
+        }
     </script>
 </body>
 </html>
