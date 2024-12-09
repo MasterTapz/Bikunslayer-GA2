@@ -62,17 +62,20 @@ def get_testimonials(request):
                 T.date AS date,
                 T.Text AS text,
                 T.Rating AS rating,
-                U.Name AS username,
-                UW.Name AS workername
+                U.Name AS username,  -- Fetch customer name
+                UW.Name AS workername -- Fetch worker name
             FROM TESTIMONI T
             INNER JOIN TR_SERVICE_ORDER S ON T.ServiceTrId = S.Id
             INNER JOIN customer C ON S.customerId = C.Id
-            INNER JOIN users U ON C.Id = U.Id
+            INNER JOIN users U ON C.Id = U.Id -- Join to get customer (author) name
             INNER JOIN worker W ON S.workerId = W.Id
-            INNER JOIN users UW ON W.Id = UW.Id
+            INNER JOIN users UW ON W.Id = UW.Id -- Join to get worker name
         """)
         testimonials = dict_fetch_all(cursor)
     return JsonResponse({'testimonials': testimonials})
+
+
+
 def dict_fetch_all(cursor):
     # Return all rows from a cursor as a dict
     columns = [col[0] for col in cursor.description]
@@ -91,30 +94,49 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection
 
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.db import connection
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.db import connection
+
 @csrf_exempt
 def create_testimonial(request):
+    # Step 1: Fetch the logged-in user's details from the session
+    user_id = request.session.get("user_id")  # Dynamically fetched user ID from the session
+    if not user_id:
+        return JsonResponse({'success': False, 'message': 'You must be logged in to submit a testimonial.'})
+
     if request.method == 'POST':
         try:
-            # Parse request data
+            # Step 2: Parse request data
             data = json.loads(request.body)
             worker_name = data.get('worker')
             rating = data.get('rating')
             comment = data.get('comment')
 
-            # Fetch logged-in user info from the session
-            user_id = request.session.get('user_id')
-            user_name = request.session.get('user_name')
-
-            # Ensure the user is logged in
-            if not user_id or not user_name:
-                return JsonResponse({'success': False, 'message': 'You must be logged in to submit a testimonial.'})
-
             # Validate inputs
             if not worker_name or not rating or not comment:
                 return JsonResponse({'success': False, 'message': 'All fields are required.'})
 
-            # Fetch ServiceTrId linked to the worker
+            # Step 3: Fetch the username dynamically using the user_id
             with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT Name
+                    FROM users
+                    WHERE Id = %s
+                """, [user_id])
+                user_data = cursor.fetchone()
+                if not user_data:
+                    return JsonResponse({'success': False, 'message': 'User not found.'})
+                
+                user_name = user_data[0]  # Get the username dynamically
+
+                # Step 4: Fetch the ServiceTrId for the worker
                 cursor.execute("""
                     SELECT S.Id
                     FROM TR_SERVICE_ORDER S
@@ -131,7 +153,7 @@ def create_testimonial(request):
 
                 service_tr_id = service_order[0]
 
-                # Check if a testimonial for this ServiceTrId already exists for today
+                # Step 5: Check if a testimonial already exists for today
                 cursor.execute("""
                     SELECT COUNT(*)
                     FROM TESTIMONI
@@ -142,23 +164,23 @@ def create_testimonial(request):
                 if exists:
                     return JsonResponse({'success': False, 'message': 'A testimonial for this service order already exists today.'})
 
-                # Insert the testimonial into the TESTIMONI table
+                # Step 6: Insert the testimonial into the TESTIMONI table
                 cursor.execute("""
                     INSERT INTO TESTIMONI (ServiceTrId, date, Text, Rating)
                     VALUES (%s, CURRENT_DATE, %s, %s)
                 """, [service_tr_id, comment, rating])
 
+            # Step 7: Return success response with dynamic username
             return JsonResponse({
                 'success': True,
                 'message': 'Testimonial created successfully!',
-                'username': user_name  # Include logged-in user's name in the response
+                'username': user_name  # Return the dynamic username
             })
 
         except Exception as e:
             return JsonResponse({'success': False, 'message': f'Error: {str(e)}'})
 
     return JsonResponse({'success': False, 'message': 'Invalid request method.'})
-
 
 import psycopg2
 from datetime import date, timedelta
@@ -174,7 +196,6 @@ from django.contrib import messages
 
 
 @csrf_exempt
-
 def purchase_voucher(request):
     user_id = request.session.get("user_id")
     if not user_id:
