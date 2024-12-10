@@ -3,163 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Jobs</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Service Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Applying custom colors from the palette */
+        .bg-primary { background-color: #f4f4f4; } /* Deep Teal */
+        .bg-secondary { background-color: #e5edee; } /* Aqua */
+        .bg-accent { background-color: #000000; } /* Burnt Orange */
+        .text-light { color: #ffffff; } /* Light Aqua*/
+        .text-dark { color: #000000; } /* Dark Teal */
+        /* Tambahkan CSS ini untuk menyembunyikan Service Orders */
+        .hidden-orders {
+            display: none;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-
-    <!-- Navbar -->
+<body class="bg-primary font-sans leading-normal tracking-normal text-dark">
     {% if request.session.user_role == "worker" %}
-        {% include "worker_navbar.html" %}
+    {% include "worker_navbar.html" %}
+    {% elif request.session.user_role == "user" %}
+        {% include "user_navbar.html" %}
     {% elif request.session.user_role == "customer" %}
         {% include "user_navbar.html" %}
     {% else %}
         {% include "guest_navbar.html" %}
     {% endif %}
 
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-2xl font-bold mb-6">Service Orders</h1>
-
-        <!-- Filter Section -->
-        <div class="bg-white shadow-md rounded-lg p-4 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Category Filter -->
-                <div>
-                    <label for="serviceCategory" class="block text-sm font-medium text-gray-700">Category:</label>
-                    <select id="serviceCategory" onchange="populateSubcategories()" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="">-- Select Category --</option>
-                        {% for category_id, category in categories.items %}
-                            <option value="{{ category_id }}" {% if request.GET.service_category_id == category_id %}selected{% endif %}>
-                                {{ category.name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
+    <div class="container mx-auto p-5">
+        <!-- Header -->
+        <h1 class="text-3xl font-bold mb-5 text-center">Service Job</h1>
+        
+        <!-- Filter Form -->
+        <div class="filter mb-5">
+            <form id="filterForm" method="GET" action="">
+                <label for="category" class="block text-lg font-medium mb-2">Service Category:</label>
+                <select id="category" name="category" class="w-full p-2 border border-gray-300 rounded mt-1">
+                    <option value="">Select a category</option>
+                    {% for category in worker_service_categories %}
+                        <option value="{{ category.0 }}" {% if category.0 == selected_category %}selected{% endif %}>
+                            {{ category.1 }}
+                        </option>
+                    {% endfor %}
+                </select>
             
-                <!-- Subcategory Filter -->
-                <div>
-                    <label for="serviceSubcategory" class="block text-sm font-medium text-gray-700">Subcategory:</label>
-                    <select id="serviceSubcategory" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="">-- Select Subcategory --</option>
-                        {% if request.GET.service_category_id %}
-                            {% for category_id, category in categories.items %}
-                                {% if category_id == request.GET.service_category_id %}
-                                    {% for subcategory in category.subcategories %}
-                                        <option value="{{ subcategory.id }}" {% if request.GET.service_subcategory_id == subcategory.id %}selected{% endif %}>
-                                            {{ subcategory.name }}
-                                        </option>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endfor %}
-                        {% endif %}
-                    </select>
-                </div>
+                <label for="subcategory" class="block text-lg font-medium mb-2 mt-4">Service Subcategory:</label>
+                <select id="subcategory" name="subcategory" class="w-full p-2 border border-gray-300 rounded mt-1" {% if not selected_category %}disabled{% endif %}>
+                    <option value="">Select a subcategory</option>
+                    {% for subcategory in subcategories %}
+                        <option value="{{ subcategory.0 }}" {% if subcategory.0 == selected_subcategory %}selected{% endif %}>
+                            {{ subcategory.1 }}
+                        </option>
+                    {% endfor %}
+                </select>
             
-                <!-- Search Button -->
-                <div class="flex items-end">
-                    <button onclick="filterOrders()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md w-full">Search</button>
-                </div>
-            </div>            
+                <button type="submit" class="w-full mt-3 bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Filter</button>
+            </form>        
         </div>
 
-        <!-- Service List -->
-        <div id="serviceList" class="space-y-4">
-            {% if service_jobs %}
-                {% for job in service_jobs %}
-                    <div class="bg-white shadow-md rounded-lg p-4 flex justify-between items-center">
-                        <div>
-                            <p class="text-sm text-gray-500">Subcategory: {{ job.sub_category }}</p>
-                            <p class="text-sm text-gray-500">Order Date: {{ job.order_date }}</p>
-                            <p class="text-sm text-gray-500">Service Date: {{ job.service_date }}</p>
-                            <p class="text-sm text-gray-500">Session: {{ job.session }}</p>
-                            <p class="text-sm text-gray-500">Total: ${{ job.total_price }}</p>
-                        </div>
-                        <button onclick="acceptOrder('{{ job.id }}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md">Accept Order</button>
-                    </div>
-                {% endfor %}
+        <!-- Service Orders List -->
+        <div id="ordersContainer" class="bg-white shadow-md rounded-md p-5 hidden-orders">
+            <h2 class="text-2xl font-semibold mb-4 text-dark">Service Orders</h2>
+            {% if orders %}
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Subcategory</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Order Date</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Session</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Price</th>                            
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Service Time</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Status</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-gray-100 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                            <tr>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.2 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.3 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.7 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.8 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.5 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.6 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">
+                                    <form method="POST" action="{% url 'accept_order' order.0 %}" class="accept-order-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Accept Order</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             {% else %}
-                <p class="text-center text-gray-500">No service orders available.</p>
+                <p>No orders available.</p>
             {% endif %}
         </div>
     </div>
 
-    <!-- JavaScript -->
+    <footer class="mt-10 text-center">
+        <p>&copy; 2024 BIKUNSLAYER</p>
+    </footer>
+
     <script>
-        // Category data from backend
-        const categoryData = JSON.parse('{{ categories|safe|escapejs }}');
+        // Filter form submission
+        document.getElementById('filterForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const params = new URLSearchParams(formData).toString();
 
-        // Populate subcategories based on the selected category
-        function populateSubcategories() {
-            const categoryId = document.getElementById('serviceCategory').value;
-            const subcategoryDropdown = document.getElementById('serviceSubcategory');
-            subcategoryDropdown.innerHTML = '<option value="">-- Select Subcategory --</option>';
-
-            if (categoryId) {
-                fetch(`/fetch-subcategories/?category_id=${categoryId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.subcategories) {
-                            data.subcategories.forEach(sub => {
-                                subcategoryDropdown.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
-                            });
-                        } else {
-                            console.error("No subcategories found.");
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Error fetching subcategories:", error);
-                    });
-            }
-        }
-
-        // Filter orders dynamically
-        function filterOrders() {
-            const category = document.getElementById('serviceCategory').value;
-            const subcategory = document.getElementById('serviceSubcategory').value;
-
-            const url = new URL(window.location.href);
-            if (category) {
-                url.searchParams.set("service_category_id", category);
-            } else {
-                url.searchParams.delete("service_category_id");
-            }
-            if (subcategory) {
-                url.searchParams.set("service_subcategory_id", subcategory);
-            } else {
-                url.searchParams.delete("service_subcategory_id");
-            }
-
-            // Reload the page with the updated query parameters
-            window.location.href = url.toString();
-        }
-
-        // Accept an order
-        function acceptOrder(orderId) {
-            console.log("Accepting order ID:", orderId); // Debugging: Log orderId
-            fetch("/accept-order/", {
-                method: "POST",
+            fetch(`?${params}`, {
+                method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-                },
-                body: JSON.stringify({ order_id: orderId }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Response:", data); // Debugging: Log server response
-                if (data.success) {
-                    alert("Order accepted successfully!");
-                    location.reload(); // Reload to reflect changes
-                } else {
-                    alert(data.error || "Failed to accept the order.");
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .catch(error => {
-                console.error("Error:", error);
-                alert("An error occurred. Please try again.");
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newOrdersContainer = doc.getElementById('ordersContainer');
+                const ordersContainer = document.getElementById('ordersContainer');
+                ordersContainer.innerHTML = newOrdersContainer.innerHTML;
+                // Tampilkan Service Orders
+                ordersContainer.classList.remove('hidden-orders');
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        // Category change event
+        document.getElementById('category').addEventListener('change', function() {
+            const category = this.value;
+            const subcategorySelect = document.getElementById('subcategory');
+
+            if (category) {
+                fetch(`?category=${category}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newSubcategorySelect = doc.getElementById('subcategory');
+                    subcategorySelect.innerHTML = newSubcategorySelect.innerHTML;
+                    subcategorySelect.disabled = false;
+                })
+                .catch(error => console.error('Error:', error));
+            } else {
+                subcategorySelect.innerHTML = '<option value="">Select a subcategory</option>';
+                subcategorySelect.disabled = true;
+            }
+        });
+
+        // Accept Order form submission
+        document.querySelectorAll('form.accept-order-form').forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent default form submission
+
+                const url = form.action;
+                const csrftoken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Refresh the page
+                        location.reload();
+                    } else {
+                        console.error('Error accepting order');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
             });
-        }
+        });
     </script>
 </body>
 </html>
