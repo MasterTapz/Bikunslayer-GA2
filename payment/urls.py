@@ -1,34 +1,11 @@
+# urls.py
 from django.urls import path
-from .views import (
-    MyPay,
-    MyPay_Transaction,
-    ServiceJob_Status,
-    ServiceJob,
-    accept_order,
-    fetch_subcategories,
-    get_users,
-    get_tr_mypay,
-    get_tr_mypay_categories,
-)
 from . import views
+from .views import  MyPay_Transaction
 
 urlpatterns = [
-    # HTML Template views
-    path('mypay/', MyPay, name='mypay'),
-    path('mypay/transaction/', MyPay_Transaction, name='mypay-transaction'),
-    path('servicejob/status/', ServiceJob_Status, name='servicejob_status'),
-    path('servicejob/', ServiceJob, name='servicejob'),
-
-    # API Endpoints
-    path('api/get-users/', get_users, name='get-users'),
-    path('api/get-tr-mypay/', get_tr_mypay, name='get-tr-mypay'),
-    path('api/get-tr-mypay-categories/', get_tr_mypay_categories, name='get-tr-mypay-categories'),
-    path('mypay/topup/', views.topup, name='topup'),
-    path('mypay/service-payment/', views.service_payment, name='service_payment'),
-    path('mypay/transfer/', views.transfer, name='transfer'),
-    path('mypay/withdrawal/', views.withdrawal, name='withdrawal'),
-    path("fetch-subcategories/", fetch_subcategories, name="fetch_subcategories"),
-    path("accept-order/", accept_order, name="accept_order"),
-
-
-]
+    path('mypay/', views.MyPay, name='mypay'),  # This will map the '/mypay' URL to the 'mypay' view
+    path('perform_transaction/', MyPay_Transaction, name='perform_transaction'),
+    path('servicejob/', views.ServiceJob, name='servicejob'),
+    path('servicejob-status/', views.ServiceJob_Status, name='servicejob_status'),
+    ]

@@ -1,179 +1,200 @@
-<pre>{{ transactions|safe }}</pre>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyPay Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f9f9f9;
-        }
-
-        /* Navbar styles */
-        .navbar {
-            width: 100%;
-            background-color: #007BFF;
-            color: #fff;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 1000;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            margin: 0 10px;
-        }
-
-        .navbar a:hover {
-            text-decoration: underline;
-        }
-
-        /* Main container styles */
-        .container {
-            width: 80%;
-            max-width: 600px;
-            background: #ffffff;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 100px auto 0;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #ddd;
-            background-color: #f4f4f4;
-        }
-
-        .header div {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .balance {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-
-        .transaction-history {
-            padding: 20px;
-        }
-
-        .transaction-history h3 {
-            margin-bottom: 10px;
-        }
-
-        .transaction-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .transaction-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-            align-items: center;
-        }
-
-        .transaction-item span {
-            width: 30%;
-            text-align: center;
-            font-size: 0.9em;
-            font-weight: bold;
-        }
-
-        .transaction-item span:first-child {
-            color: green; /* Positive amounts */
-        }
-
-        .transaction-item span:first-child.negative {
-            color: red; /* Negative amounts */
-        }
-
-        .button {
-            padding: 10px 20px;
-            background-color: #007BFF;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-
-        .button:hover {
-            background-color: #0056b3;
-        }
-
-        .button-container {
-            display: flex;
-            align-items: center;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyPay</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    /* Applying custom colors from the palette */
+    .bg-primary { background-color: #f9f9f9; } /* Deep Teal */
+    .bg-secondary { background-color: #ffffff; } /* Aqua */
+    .bg-accent { background-color: #000000; } /* Burnt Orange */
+    .text-light { color: #000000; } /* Light Aqua */
+    .text-dark { color: #000000; } /* Dark Teal */
+  </style>
 </head>
-<body>
-    <!-- Navbar -->
+<body class="bg-primary font-sans leading-normal tracking-normal text-light">
     {% if request.session.user_role == "worker" %}
-    {% include "worker_navbar.html" %}
+      {% include "worker_navbar.html" %}
     {% elif request.session.user_role == "user" %}
         {% include "user_navbar.html" %}
     {% elif request.session.user_role == "customer" %}
         {% include "user_navbar.html" %}
     {% else %}
-        <!-- Default or guest navbar -->
         {% include "guest_navbar.html" %}
     {% endif %}
 
-    <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div>
-                <span>Phone Number: <strong>{{ phone_number }}</strong></span>
-                <span class="balance">Balance: $<span>{{ balance }}</span></span>
-            </div>
-            <div class="button-container">
-                <button class="button" onclick="location.href='/mypay/transaction/'">Transaction</button>
-            </div>
+
+  <!-- Page Content -->
+
+  <!-- Current Balance Display Section -->
+  <section class="p-6 bg-secondary text-dark flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold">MyPay Balance</h1>
+      <p class="text-lg mt-1">Current Balance: $<span id="balance">{{ balance }}</span></p>
+    </div>
+    <button onclick="toggleModal()" class="bg-accent text-white font-semibold py-2 px-4 rounded shadow-md hover:bg-opacity-90">
+      Transact
+    </button>
+  </section>
+
+  <!-- Transaction History Section -->
+  <section class="p-6">
+    <h2 class="text-xl font-semibold mb-4 text-light">Transaction History</h2>
+    <div id="historyList" class="space-y-4">
+      {% for transaction in transactions %}
+      <div class="p-4 bg-white rounded shadow-md text-dark">
+        <p class="font-semibold">{{ transaction.category }}: ${{ transaction.nominal }}</p>
+        <p class="text-gray-500">Date: {{ transaction.date }}</p>
+      </div>
+      {% empty %}
+      <p class="text-gray-500">No transactions found.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- New Transaction Modal -->
+  <div id="transactionModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden justify-center items-center z-50">
+    <div class="bg-white w-11/12 max-w-lg p-6 rounded-lg shadow-lg relative text-dark">
+      <button onclick="toggleModal()" class="absolute top-2 right-2 text-gray-600 hover:text-gray-800">
+        &times;
+      </button>
+      <h2 class="text-xl font-semibold mb-4">New Transaction</h2>
+      <form id="transactionForm" class="space-y-4" method="POST">
+        {% csrf_token %}
+
+
+        <!-- Transaction Type Selection -->
+        <div>
+          <label class="block text-sm font-medium">Transaction Type</label>
+          <select id="transactionType" name="transactionType" class="w-full p-2 border border-gray-300 rounded mt-1 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent">
+            <option value="topUp">TopUp MyPay</option>
+            <option value="servicePayment">Service Payment</option>
+            <option value="transfer">Transfer MyPay</option>
+            <option value="withdrawal">Withdrawal</option>
+          </select>
         </div>
 
-        <div class="transaction-history">
-            <h3>Transaction History</h3>
-            {% if transactions %}
-                <div class="transaction-list">
-                    {% for transaction in transactions %}
-                        <div class="transaction-item">
-                            <!-- Display nominal with appropriate class -->
-                            <span class="{% if transaction.nominal < 0 %}negative{% else %}positive{% endif %}">
-                                {% if transaction.nominal < 0 %}-{% endif %} Rp {{ transaction.nominal|floatformat:2 }}
-                            </span>
-                            <!-- Display formatted date -->
-                            <span>{{ transaction.date }}</span>
-                            <!-- Display category -->
-                            <span>{{ transaction.category }}</span>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p>No transactions found.</p>
-            {% endif %}
-        </div>        
+        <!-- Dynamic Fields for Transaction Types -->
+        <div id="topUpFields" class="transaction-fields">
+          <label class="block text-sm font-medium">Top-Up Amount</label>
+          <input type="number" id="topUpAmount" name="topUpAmount" class="w-full p-2 border border-gray-300 rounded mt-1" placeholder="Enter amount">
+        </div>
+
+        <div id="servicePaymentFields" class="transaction-fields hidden">
+
+          <label class="block text-sm font-medium mt-4">Service Price</label>
+          <input type="text" id="servicePrice" name="servicePrice" class="w-full p-2 border border-gray-300 rounded mt-1" value="" disabled>
+        </div>
+
+        <div id="transferFields" class="transaction-fields hidden">
+          <label class="block text-sm font-medium">Recipient's Phone Number</label>
+          <input type="tel" id="recipientPhone" name="recipientPhone" class="w-full p-2 border border-gray-300 rounded mt-1" placeholder="Enter phone number">
+          <label class="block text-sm font-medium mt-4">Transfer Amount</label>
+          <input type="number" id="transferAmount" name="transferAmount" class="w-full p-2 border border-gray-300 rounded mt-1" placeholder="Enter amount">
+        </div>
+
+        <div id="withdrawalFields" class="transaction-fields hidden">
+          <label class="block text-sm font-medium">Bank Name</label>
+          <select id="bankName" name="bankName" class="w-full p-2 border border-gray-300 rounded mt-1">
+            <option>Select Bank</option>
+            <option value="GoPay">GoPay</option>
+            <option value="OVO">OVO</option>
+            <option value="Virtual Account BCA">Virtual Account BCA</option>
+            <option value="BNI">BNI</option>
+            <option value="Mandiri">Mandiri</option>
+          </select>
+          <label class="block text-sm font-medium mt-4">Bank Account Number</label>
+          <input type="text" id="bankAccountNumber" name="bankAccountNumber" class="w-full p-2 border border-gray-300 rounded mt-1" placeholder="Enter account number">
+          <label class="block text-sm font-medium mt-4">Withdrawal Amount</label>
+          <input type="number" id="withdrawalAmount" name="withdrawalAmount" class="w-full p-2 border border-gray-300 rounded mt-1" placeholder="Enter amount">
+        </div>
+        
+        <!-- Submit Button -->
+        <button type="submit" class="w-full bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">
+          Confirm Transaction
+        </button>
+      </form>
     </div>
+  </div>
+
+  <script>
+    const transactionType = document.getElementById('transactionType');
+    const topUpFields = document.getElementById('topUpFields');
+    const servicePaymentFields = document.getElementById('servicePaymentFields');
+    const transferFields = document.getElementById('transferFields');
+    const withdrawalFields = document.getElementById('withdrawalFields');
+    const transactionModal = document.getElementById('transactionModal');
+
+    function toggleModal() {
+      transactionModal.classList.toggle('hidden');
+      transactionModal.classList.toggle('flex');
+    }
+
+    function updateFormFields() {
+      topUpFields.classList.add('hidden');
+      servicePaymentFields.classList.add('hidden');
+      transferFields.classList.add('hidden');
+      withdrawalFields.classList.add('hidden');
+
+      switch (transactionType.value) {
+        case 'topUp':
+          topUpFields.classList.remove('hidden');
+          break;
+        case 'servicePayment':
+          servicePaymentFields.classList.remove('hidden');
+          break;
+        case 'transfer':
+          transferFields.classList.remove('hidden');
+          break;
+        case 'withdrawal':
+          withdrawalFields.classList.remove('hidden');
+          break;
+      }
+    }
+
+    transactionType.addEventListener('change', updateFormFields);
+    updateFormFields(); // Initialize on load
+
+    // Handle form submission via AJAX
+    const form = document.getElementById('transactionForm');
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+
+      const formData = new FormData(form);
+      fetch("{% url 'perform_transaction' %}", { 
+      method: 'POST',
+      body: formData,
+      headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+  },
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.message);
+        if (data.success) {
+          // Optionally, update the balance and transaction history dynamically
+          location.reload(); // Reload the page to reflect changes
+        }
+      })
+      .catch(error => {
+        alert('Error: ' + error.message);
+      });
+    });
+
+    // Update service price when a different order is selected
+    const orderSelect = document.getElementById('orderId');
+    const servicePriceInput = document.getElementById('servicePrice');
+
+    function updateServicePrice() {
+      const selectedOption = orderSelect.options[orderSelect.selectedIndex];
+      const price = selectedOption.getAttribute('data-price');
+      servicePriceInput.value = '$ ' + price;
+    }
+
+    orderSelect.addEventListener('change', updateServicePrice);
+    updateServicePrice(); // Initialize on load
+  </script>
 </body>
 </html>
