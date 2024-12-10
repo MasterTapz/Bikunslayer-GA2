@@ -367,18 +367,27 @@ def ServiceJob(request):
 
 
 
+from django.contrib import messages
+from django.shortcuts import redirect, render
+from django.db import connection
+from django.http import JsonResponse
+from uuid import uuid4
+from datetime import datetime
+from django.contrib.auth.decorators import login_required
+
 def ServiceJob_Status(request):
     worker_id = request.session.get('user_id')
     if not worker_id:
         return JsonResponse({'success': False, 'error': 'User not logged in'})
 
+    # Handle AJAX POST requests to update order status
     if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         order_id = request.POST.get('order_id')
         next_status = request.POST.get('next_status')
 
         # Update the order status in the database
         with connection.cursor() as cursor:
-            # Get the status ID
+            # Get the Status ID for the requested next_status
             cursor.execute("SELECT Id FROM ORDER_STATUS WHERE Status = %s", [next_status])
             status_id = cursor.fetchone()
 
@@ -388,30 +397,15 @@ def ServiceJob_Status(request):
                     "INSERT INTO TR_ORDER_STATUS (serviceTrId, statusId, date) VALUES (%s, %s, %s)",
                     [order_id, status_id[0], datetime.now()]
                 )
-
-                # Prepare the next action and status
-                status_transitions = {
-                    'Waiting for Worker to Depart': ('Arrived at Location', 'Worker Arrived at Location'),
-                    'Worker Arrived at Location': ('Providing Service', 'Service in Progress'),
-                    'Service in Progress': ('Service Completed', 'Completed'),
-                }
-                current_status = next_status
-                next_action, next_status = status_transitions.get(current_status, (None, None))
-
                 return JsonResponse({
                     'success': True,
-                    'current_status': current_status,
-                    'next_action': next_action,
-                    'next_status': next_status,
-                    'order_id': order_id,
-                    'update_url': request.build_absolute_uri(),  # URL for form action
-                    'csrf_token': request.COOKIES['csrftoken'],  # CSRF token
+                    'new_status': next_status,  # Return the newly set status
+                    'order_id': order_id
                 })
+            else:
+                return JsonResponse({'success': False, 'error': 'Invalid status provided.'})
 
-        return JsonResponse({'success': False, 'error': 'Failed to update status'})
-
-
-    # Get the status filter from the request
+    # Get the status filter from the request for initial page load or GET requests
     status_filter = request.GET.get('status_filter')
 
     # Base query to fetch orders with the most recent status
@@ -442,63 +436,21 @@ def ServiceJob_Status(request):
     WHERE o.workerId = %s
     """
     
-    # Add status filter to the query if provided
+    # Add status filter if provided
     query_params = [worker_id]
     if status_filter:
         query += " AND latest_status.Status = %s"
         query_params.append(status_filter)
 
-    # Add the ORDER BY clause at the end
     query += " ORDER BY o.orderDate DESC"
 
-    # Execute the query
     with connection.cursor() as cursor:
         cursor.execute(query, query_params)
         orders = cursor.fetchall()
 
-    # Define status transitions for handling job status updates
-    status_transitions = {
-        'Waiting for Worker to Depart': ('Arrived at Location', 'Worker Arrived at Location'),
-        'Worker Arrived at Location': ('Providing Service', 'Service in Progress'),
-        'Service in Progress': ('Service Completed', 'Completed'),
-    }
-
-    # Add the status transition information to the orders
-    orders_with_transitions = []
-    for order in orders:
-        current_status = order[5]
-        next_action = None
-        next_status = None
-        if current_status in status_transitions:
-            next_action, next_status = status_transitions[current_status]
-        orders_with_transitions.append(order + (next_action, next_status))
-
-    # Handling the POST request for status updates
-    if request.method == 'POST':
-        order_id = request.POST.get('order_id')
-        next_status = request.POST.get('next_status')
-
-        # Retrieve the StatusId based on the next_status
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT Id FROM ORDER_STATUS WHERE Status = %s
-            """, [next_status])
-            status_id = cursor.fetchone()
-
-            if status_id:
-                # Insert the new status into TR_ORDER_STATUS
-                cursor.execute("""
-                    INSERT INTO TR_ORDER_STATUS (serviceTrId, statusId, date)
-                    VALUES (%s, %s, %s)
-                """, [order_id, status_id[0], datetime.now()])
-
-                messages.success(request, "Order status updated successfully!")
-            else:
-                messages.error(request, "Invalid status provided.")
-            return redirect('servicejob_status')
+    # No second POST handling here, all handled via AJAX now.
 
     return render(request, 'ServiceJob_Status.html', {
-        'orders': orders_with_transitions,
-        'status_transitions': status_transitions,
+        'orders': orders,
         'status_filter': status_filter,
     })
