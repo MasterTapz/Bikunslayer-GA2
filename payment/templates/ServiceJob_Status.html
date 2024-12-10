@@ -6,12 +6,11 @@
     <title>Service Job Status</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        /* Applying custom colors from the palette */
-        .bg-primary { background-color: #f4f4f4; } /* Deep Teal */
-        .bg-secondary { background-color: #f4f4f4; } /* Aqua */
-        .bg-accent { background-color: #000000; } /* Burnt Orange */
-        .text-light { color: #ffffff; } /* Light Aqua */
-        .text-dark { color: #000000; } /* Dark Teal */
+        .bg-primary { background-color: #f4f4f4; }
+        .bg-secondary { background-color: #f4f4f4; }
+        .bg-accent { background-color: #000000; }
+        .text-light { color: #ffffff; }
+        .text-dark { color: #000000; }
         .hidden-orders {
             display: none;
         }
@@ -19,7 +18,7 @@
 </head>
 <body class="bg-primary font-sans leading-normal tracking-normal text-dark">
     {% if request.session.user_role == "worker" %}
-    {% include "worker_navbar.html" %}
+        {% include "worker_navbar.html" %}
     {% elif request.session.user_role == "user" %}
         {% include "user_navbar.html" %}
     {% elif request.session.user_role == "customer" %}
@@ -28,12 +27,9 @@
         {% include "guest_navbar.html" %}
     {% endif %}
 
-
     <div class="container mx-auto p-5">
-        <!-- Header -->
         <h1 class="text-3xl font-bold mb-5">Manage Order Status</h1>
 
-        <!-- Filter Form -->
         <!-- Filter Form -->
         <div class="filter mb-5">
             <form id="filterForm" method="get" action="{% url 'servicejob_status' %}">
@@ -48,78 +44,83 @@
                 </select>
                 <button type="submit" class="w-full mt-3 bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Filter</button>
             </form>
+        </div>
 
-        <!-- Active Orders List -->
-        <div id="ordersContainer" class="bg-white shadow-md rounded-md p-5 hidden-orders">
+        <div id="ordersContainer" class="bg-white shadow-md rounded-md p-5 {% if not orders %}hidden-orders{% endif %}">
             <h2 class="text-2xl font-semibold mb-4 text-dark">Your Active Jobs</h2>
-            <table class="min-w-full bg-white">
-                <thead>
-                    <tr>
-                        <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm leading-4 font-medium text-white uppercase tracking-wider">Order Date</th>
-                        <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm leading-4 font-medium text-white uppercase tracking-wider">Service Date</th>
-                        <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm leading-4 font-medium text-white uppercase tracking-wider">Service Subcategory</th>
-                        <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm leading-4 font-medium text-white uppercase tracking-wider">User Name</th>
-                        <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm leading-4 font-medium text-white uppercase tracking-wider">Session</th>
-                        <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm leading-4 font-medium text-white uppercase tracking-wider">Current Status</th>
-                        <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm leading-4 font-medium text-white uppercase tracking-wider">Session Price</th>
-                        <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm leading-4 font-medium text-white uppercase tracking-wider">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
+            {% if orders %}
+                <table class="min-w-full bg-white">
+                    <thead>
                         <tr>
-                            <td class="py-2 px-4 border-b border-gray-200">{{ order.2 }}</td>
-                            <td class="py-2 px-4 border-b border-gray-200">{{ order.3 }}</td>
-                            <td class="py-2 px-4 border-b border-gray-200">{{ order.0 }}</td>
-                            <td class="py-2 px-4 border-b border-gray-200">{{ order.1 }}</td>
-                            <td class="py-2 px-4 border-b border-gray-200">{{ order.4 }}</td>
-                            <td class="py-2 px-4 border-b border-gray-200">{{ order.5 }}</td>
-                            <td class="py-2 px-4 border-b border-gray-200">${{ order.6 }}</td>
-                            <td class="py-2 px-4 border-b border-gray-200">
-                                {% if order.5 == 'Worker Assigned' %}
-                                    <form method="post" action="{% url 'servicejob_status' %}" class="status-update-form">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="order_id" value="{{ order.7 }}">
-                                        <input type="hidden" name="next_status" value="Waiting for Worker to Depart">
-                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">
-                                            Next: Waiting for Worker to Depart
-                                        </button>
-                                    </form>
-                                {% elif order.5 == 'Waiting for Worker to Depart' %}
-                                    <form method="post" action="{% url 'servicejob_status' %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="order_id" value="{{ order.7 }}">
-                                        <input type="hidden" name="next_status" value="Worker Arrived at Location">
-                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Arrived at Location</button>
-                                    </form>
-                                {% elif order.5 == 'Worker Arrived at Location' %}
-                                    <form method="post" action="{% url 'servicejob_status' %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="order_id" value="{{ order.7 }}">
-                                        <input type="hidden" name="next_status" value="Service in Progress">
-                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Providing Service</button>
-                                    </form>
-                                {% elif order.5 == 'Service in Progress' %}
-                                    <form method="post" action="{% url 'servicejob_status' %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="order_id" value="{{ order.7 }}">
-                                        <input type="hidden" name="next_status" value="Completed">
-                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Service Completed</button>
-                                    </form>
-                                {% else %}
-                                    <p class="text-gray-500">No further steps available</p>
-                                {% endif %}
-                            </td>
-                            
-                            
+                            <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm font-medium text-white uppercase tracking-wider">Order Date</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm font-medium text-white uppercase tracking-wider">Service Date</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm font-medium text-white uppercase tracking-wider">Service Subcategory</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm font-medium text-white uppercase tracking-wider">User Name</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm font-medium text-white uppercase tracking-wider">Session</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm font-medium text-white uppercase tracking-wider">Current Status</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm font-medium text-white uppercase tracking-wider">Session Price</th>
+                            <th class="py-2 px-4 border-b border-gray-200 bg-black text-left text-sm font-medium text-white uppercase tracking-wider">Action</th>
                         </tr>
-                    {% endfor %}
-                </tbody>                
-            </table>
-        </div>        
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                            <tr>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.2 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.3 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.0 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.1 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.4 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.5 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">{{ order.6 }}</td>
+                                <td class="py-2 px-4 border-b border-gray-200">
+                                    {% if order.5 == 'Worker Assigned' %}
+                                        <form method="post" action="{% url 'servicejob_status' %}" class="status-update-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="order_id" value="{{ order.7 }}">
+                                            <input type="hidden" name="next_status" value="Waiting for Worker to Depart">
+                                            <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">
+                                                Next: Waiting for Worker to Depart
+                                            </button>
+                                        </form>
+                                    {% elif order.5 == 'Waiting for Worker to Depart' %}
+                                        <form method="post" action="{% url 'servicejob_status' %}" class="status-update-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="order_id" value="{{ order.7 }}">
+                                            <input type="hidden" name="next_status" value="Worker Arrived at Location">
+                                            <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Arrived at Location</button>
+                                        </form>
+                                    {% elif order.5 == 'Worker Arrived at Location' %}
+                                        <form method="post" action="{% url 'servicejob_status' %}" class="status-update-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="order_id" value="{{ order.7 }}">
+                                            <input type="hidden" name="next_status" value="Service in Progress">
+                                            <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Providing Service</button>
+                                        </form>
+                                    {% elif order.5 == 'Service in Progress' %}
+                                        <form method="post" action="{% url 'servicejob_status' %}" class="status-update-form">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="order_id" value="{{ order.7 }}">
+                                            <input type="hidden" name="next_status" value="Completed">
+                                            <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Service Completed</button>
+                                        </form>
+                                    {% else %}
+                                        <p class="text-gray-500">No further steps available</p>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No active jobs found.</p>
+            {% endif %}
+        </div>
     </div>
 
     <script>
+        const ordersContainer = document.getElementById('ordersContainer');
+
+        // Handle filter form via AJAX
         document.getElementById('filterForm').addEventListener('submit', function(event) {
             event.preventDefault();
             const form = event.target;
@@ -137,49 +138,46 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const newOrdersContainer = doc.getElementById('ordersContainer');
-                document.getElementById('ordersContainer').innerHTML = newOrdersContainer.innerHTML;
-                // Tampilkan Active Jobs Status
+                ordersContainer.innerHTML = newOrdersContainer.innerHTML;
                 ordersContainer.classList.remove('hidden-orders');
             })
             .catch(error => console.error('Error:', error));
         });
 
+        // Handle status update forms
+        document.addEventListener('click', function(event) {
+            if (event.target.closest('.status-update-form')) {
+                const form = event.target.closest('.status-update-form');
+                event.preventDefault();
 
-        document.querySelectorAll('.status-update-form').forEach(form => {
-        form.addEventListener('submit', function (event) {
-            event.preventDefault(); // Prevent default form submission
+                const formData = new FormData(form);
 
-            const formData = new FormData(this);
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const row = form.closest('tr');
+                        // Update the status column (6th column)
+                        row.querySelector('td:nth-child(6)').textContent = data.new_status;
 
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const row = this.closest('tr'); // Get the current row
-                    row.querySelector('td:nth-child(6)').textContent = data.new_status; // Update the status column
-
-                    // Disable the current button and update the next step
-                    const button = this.querySelector('button');
-                    button.disabled = true;
-                    button.textContent = "Status Updated";
-
-                    // Optionally, you can hide or replace the button for further actions
-                } else {
-                    alert('Failed to update status: ' + data.error);
-                }
-            })
-            .catch(error => console.error('Error:', error));
+                        // Disable the current button
+                        const button = form.querySelector('button');
+                        button.disabled = true;
+                        button.textContent = "Status Updated";
+                    } else {
+                        alert('Failed to update status: ' + data.error);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
         });
-    });
-
-
     </script>
 </body>
 </html>
