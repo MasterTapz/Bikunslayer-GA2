@@ -12,7 +12,7 @@
         .bg-accent { background-color: #000000; } /* Burnt Orange */
         .text-light { color: #ffffff; } /* Light Aqua*/
         .text-dark { color: #000000; } /* Dark Teal */
-        /* Tambahkan CSS ini untuk menyembunyikan Service Orders */
+        /* Only hide service orders if no orders exist */
         .hidden-orders {
             display: none;
         }
@@ -20,7 +20,7 @@
 </head>
 <body class="bg-primary font-sans leading-normal tracking-normal text-dark">
     {% if request.session.user_role == "worker" %}
-    {% include "worker_navbar.html" %}
+        {% include "worker_navbar.html" %}
     {% elif request.session.user_role == "user" %}
         {% include "user_navbar.html" %}
     {% elif request.session.user_role == "customer" %}
@@ -61,7 +61,7 @@
         </div>
 
         <!-- Service Orders List -->
-        <div id="ordersContainer" class="bg-white shadow-md rounded-md p-5 hidden-orders">
+        <div id="ordersContainer" class="bg-white shadow-md rounded-md p-5 {% if not orders %}hidden-orders{% endif %}">
             <h2 class="text-2xl font-semibold mb-4 text-dark">Service Orders</h2>
             {% if orders %}
                 <table class="min-w-full bg-white">

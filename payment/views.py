@@ -115,7 +115,7 @@ def MyPay_Transaction(request):
                             INSERT INTO TR_MYPAY (Id, Date, Nominal, CategoryId, userid)
                             VALUES (%s, %s, %s, %s, %s)
                         """, [str(uuid4()), datetime.now(), amount, 
-                            '016e6941-4132-4885-9877-5913f29249ca', user_id])
+                            '11111111-1111-1111-1111-111111111111', user_id])
 
                         # Commit the transaction
                         transaction.commit()
@@ -166,7 +166,7 @@ def MyPay_Transaction(request):
                         VALUES (%s, %s, %s, %s, %s)
                     """, [
                         str(uuid4()), datetime.now(), -service_price,
-                        '9442b31d-e430-4558-a224-d79ad514772d', user_id
+                        '22222222-2222-2222-2222-222222222222', user_id
                     ])
 
                     transaction.commit()
@@ -200,9 +200,9 @@ def MyPay_Transaction(request):
                                 INSERT INTO TR_MYPAY (Id, Date, Nominal, CategoryId, userid)
                                 VALUES (%s, %s, %s, %s, %s), (%s, %s, %s, %s, %s)
                             """, [str(uuid4()), datetime.now(), -amount, 
-                                '64fb9854-293c-45d2-9072-ea5879d056d7', user_id,
+                                '44444444-4444-4444-4444-444444444444', user_id,
                                 str(uuid4()), datetime.now(), amount, 
-                                '64fb9854-293c-45d2-9072-ea5879d056d7', recipient_id])
+                                '44444444-4444-4444-4444-444444444444', recipient_id])
 
                             transaction.commit()
 
@@ -226,7 +226,7 @@ def MyPay_Transaction(request):
                                         INSERT INTO TR_MYPAY (Id, Date, Nominal, CategoryId, userid)
                                         VALUES (%s, %s, %s, %s, %s)
                                     """, [str(uuid4()), datetime.now(), -amount, 
-                                        '6d04aac6-3d4f-401e-acaf-eed377ec8f4a', user_id])
+                                        '55555555-5555-5555-5555-555555555555', user_id])
 
                                     transaction.commit()
 
@@ -237,6 +237,59 @@ def MyPay_Transaction(request):
             return JsonResponse({'message': f'Error: {e}', 'success': False})
 
     return JsonResponse({'message': 'Invalid request', 'success': False})
+
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.db import connection
+from datetime import datetime
+
+def accept_order(request, order_id):
+    # Ensure the user is logged in as a worker
+    worker_id = request.session.get('user_id')
+    if not worker_id:
+        messages.error(request, "You must be logged in as a worker to accept orders.")
+        return redirect('login')  # or another appropriate URL
+
+    # Update the workerId for the selected order and set a new status
+    with connection.cursor() as cursor:
+        # Check if the order is currently unassigned and has status 'Finding Nearest Worker'
+        cursor.execute("""
+            SELECT os.Status 
+            FROM tr_service_order tso
+            JOIN tr_order_status tos ON tso.Id = tos.serviceTrId
+            JOIN order_status os ON tos.statusId = os.Id
+            WHERE tso.Id = %s 
+            AND tos.date = (
+                SELECT MAX(date)
+                FROM tr_order_status
+                WHERE serviceTrId = tso.Id
+            )
+        """, [order_id])
+        result = cursor.fetchone()
+
+        if not result or result[0] != 'Finding Nearest Worker':
+            messages.error(request, "This order cannot be accepted at this stage.")
+            return redirect('servicejob')
+
+        # Assign the worker to the order
+        cursor.execute("""
+            UPDATE tr_service_order
+            SET workerId = %s
+            WHERE Id = %s
+        """, [worker_id, order_id])
+
+        # Insert new status: 'Worker Assigned'
+        # First, get the statusId for 'Worker Assigned'
+        cursor.execute("SELECT Id FROM order_status WHERE Status = 'Worker Assigned'")
+        status_id = cursor.fetchone()
+        if status_id:
+            cursor.execute("""
+                INSERT INTO TR_ORDER_STATUS (serviceTrId, statusId, date)
+                VALUES (%s, %s, %s)
+            """, [order_id, status_id[0], datetime.now()])
+
+    messages.success(request, "Order accepted successfully!")
+    return redirect('servicejob')
 
 
 def ServiceJob(request):
@@ -266,7 +319,7 @@ def ServiceJob(request):
     selected_category = request.GET.get('category')
     selected_subcategory = request.GET.get('subcategory')
 
-    # Base query to fetch orders, using MAX(date) to get the most recent order status
+    # Base query to fetch orders
     order_query = """
     SELECT tso.Id, tso.serviceSubCategoryId::text, sc.CategoryName, tso.orderDate, tso.TotalPrice, tso.serviceTime,
         os.Status AS order_status, ss.Session, ss.Price
@@ -276,7 +329,7 @@ def ServiceJob(request):
     LEFT JOIN service_session ss ON tso.serviceSubCategoryId = ss.SubcategoryId AND tso.Session = ss.Session
     LEFT JOIN service_subcategory sub ON ss.SubcategoryId = sub.Id
     LEFT JOIN service_category sc ON sub.ServiceCategoryId = sc.Id
-    WHERE tso.workerId = %s
+    WHERE (tso.workerId = %s OR tso.workerId IS NULL)
     AND os.Status = 'Finding Nearest Worker'
     AND tos.date = (
         SELECT MAX(date)
@@ -311,6 +364,7 @@ def ServiceJob(request):
         'selected_category': selected_category,
         'selected_subcategory': selected_subcategory,
     })
+
 
 
 def ServiceJob_Status(request):
