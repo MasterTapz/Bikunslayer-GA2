@@ -370,22 +370,61 @@ def ServiceJob(request):
 def ServiceJob_Status(request):
     worker_id = request.session.get('user_id')
     if not worker_id:
-        return redirect('login')
+        return JsonResponse({'success': False, 'error': 'User not logged in'})
+
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        order_id = request.POST.get('order_id')
+        next_status = request.POST.get('next_status')
+
+        # Update the order status in the database
+        with connection.cursor() as cursor:
+            # Get the status ID
+            cursor.execute("SELECT Id FROM ORDER_STATUS WHERE Status = %s", [next_status])
+            status_id = cursor.fetchone()
+
+            if status_id:
+                # Insert the new status into TR_ORDER_STATUS
+                cursor.execute(
+                    "INSERT INTO TR_ORDER_STATUS (serviceTrId, statusId, date) VALUES (%s, %s, %s)",
+                    [order_id, status_id[0], datetime.now()]
+                )
+
+                # Prepare the next action and status
+                status_transitions = {
+                    'Waiting for Worker to Depart': ('Arrived at Location', 'Worker Arrived at Location'),
+                    'Worker Arrived at Location': ('Providing Service', 'Service in Progress'),
+                    'Service in Progress': ('Service Completed', 'Completed'),
+                }
+                current_status = next_status
+                next_action, next_status = status_transitions.get(current_status, (None, None))
+
+                return JsonResponse({
+                    'success': True,
+                    'current_status': current_status,
+                    'next_action': next_action,
+                    'next_status': next_status,
+                    'order_id': order_id,
+                    'update_url': request.build_absolute_uri(),  # URL for form action
+                    'csrf_token': request.COOKIES['csrftoken'],  # CSRF token
+                })
+
+        return JsonResponse({'success': False, 'error': 'Failed to update status'})
+
 
     # Get the status filter from the request
     status_filter = request.GET.get('status_filter')
 
-    # Base query to fetch orders with the most recent status 
+    # Base query to fetch orders with the most recent status
     query = """
     SELECT 
-        ss.SubcategoryName AS service_subcategory,  -- Subcategory name from SERVICE_SUBCATEGORY
-        u.Name AS user_name,  -- User's Name from users
-        o.orderDate,  -- Order Date from TR_SERVICE_ORDER
-        o.serviceDate,  -- Working Date from TR_SERVICE_ORDER
-        o.Session,  -- Session from TR_SERVICE_ORDER
-        latest_status.Status AS current_status,  -- Current status from latest_status subquery
-        ssess.Price AS session_price,  -- Price from SERVICE_SESSION table
-        o.Id AS order_id  -- Order ID from TR_SERVICE_ORDER
+        ss.SubcategoryName AS service_subcategory,
+        u.Name AS user_name,
+        o.orderDate,
+        o.serviceDate,
+        o.Session,
+        latest_status.Status AS current_status,
+        ssess.Price AS session_price,
+        o.Id AS order_id
     FROM TR_SERVICE_ORDER o
     JOIN (
         SELECT ts.serviceTrId, os.Status
@@ -396,19 +435,20 @@ def ServiceJob_Status(request):
             FROM TR_ORDER_STATUS
             GROUP BY serviceTrId
         )
-    ) latest_status ON o.Id = latest_status.serviceTrId  -- Subquery to get the latest status
-    JOIN SERVICE_SUBCATEGORY ss ON o.serviceSubCategoryId = ss.Id  -- Join with SERVICE_SUBCATEGORY
-    JOIN users u ON o.customerId = u.Id  -- Join with users
-    LEFT JOIN SERVICE_SESSION ssess ON ss.Id = ssess.SubcategoryId AND o.Session = ssess.Session  -- Join with SERVICE_SESSION
-    WHERE o.workerId = %s AND latest_status.Status NOT IN ('Completed', 'Canceled', 'Payment Confirmed', 'Worker Assigned', 'Waiting for Payment', 'Finding Nearest Worker')
+    ) latest_status ON o.Id = latest_status.serviceTrId
+    JOIN SERVICE_SUBCATEGORY ss ON o.serviceSubCategoryId = ss.Id
+    JOIN users u ON o.customerId = u.Id
+    LEFT JOIN SERVICE_SESSION ssess ON ss.Id = ssess.SubcategoryId AND o.Session = ssess.Session
+    WHERE o.workerId = %s
     """
-
+    
     # Add status filter to the query if provided
     query_params = [worker_id]
     if status_filter:
         query += " AND latest_status.Status = %s"
         query_params.append(status_filter)
 
+    # Add the ORDER BY clause at the end
     query += " ORDER BY o.orderDate DESC"
 
     # Execute the query
@@ -455,7 +495,7 @@ def ServiceJob_Status(request):
                 messages.success(request, "Order status updated successfully!")
             else:
                 messages.error(request, "Invalid status provided.")
-            return redirect('service_job_status')
+            return redirect('servicejob_status')
 
     return render(request, 'ServiceJob_Status.html', {
         'orders': orders_with_transitions,

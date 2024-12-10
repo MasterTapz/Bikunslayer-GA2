@@ -34,6 +34,7 @@
         <h1 class="text-3xl font-bold mb-5">Manage Order Status</h1>
 
         <!-- Filter Form -->
+        <!-- Filter Form -->
         <div class="filter mb-5">
             <form id="filterForm" method="get" action="{% url 'servicejob_status' %}">
                 <label for="status_filter" class="block text-lg font-medium mb-2">Filter by Order Status:</label>
@@ -47,7 +48,6 @@
                 </select>
                 <button type="submit" class="w-full mt-3 bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Filter</button>
             </form>
-        </div>
 
         <!-- Active Orders List -->
         <div id="ordersContainer" class="bg-white shadow-md rounded-md p-5 hidden-orders">
@@ -76,29 +76,42 @@
                             <td class="py-2 px-4 border-b border-gray-200">{{ order.5 }}</td>
                             <td class="py-2 px-4 border-b border-gray-200">${{ order.6 }}</td>
                             <td class="py-2 px-4 border-b border-gray-200">
-                                {% if order.5 == 'Waiting for Worker to Depart' %}
-                                    <form method="post" action="{% url 'service_job_status' %}">
+                                {% if order.5 == 'Worker Assigned' %}
+                                    <form method="post" action="{% url 'servicejob_status' %}" class="status-update-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="order_id" value="{{ order.7 }}">
+                                        <input type="hidden" name="next_status" value="Waiting for Worker to Depart">
+                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">
+                                            Next: Waiting for Worker to Depart
+                                        </button>
+                                    </form>
+                                {% elif order.5 == 'Waiting for Worker to Depart' %}
+                                    <form method="post" action="{% url 'servicejob_status' %}">
                                         {% csrf_token %}
                                         <input type="hidden" name="order_id" value="{{ order.7 }}">
                                         <input type="hidden" name="next_status" value="Worker Arrived at Location">
-                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Arrived at Location</button>
+                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Arrived at Location</button>
                                     </form>
                                 {% elif order.5 == 'Worker Arrived at Location' %}
-                                    <form method="post" action="{% url 'service_job_status' %}">
+                                    <form method="post" action="{% url 'servicejob_status' %}">
                                         {% csrf_token %}
                                         <input type="hidden" name="order_id" value="{{ order.7 }}">
                                         <input type="hidden" name="next_status" value="Service in Progress">
-                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Providing Service</button>
+                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Providing Service</button>
                                     </form>
                                 {% elif order.5 == 'Service in Progress' %}
-                                    <form method="post" action="{% url 'service_job_status' %}">
+                                    <form method="post" action="{% url 'servicejob_status' %}">
                                         {% csrf_token %}
                                         <input type="hidden" name="order_id" value="{{ order.7 }}">
                                         <input type="hidden" name="next_status" value="Completed">
-                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Service Completed</button>
+                                        <button type="submit" class="bg-accent text-white py-2 px-4 rounded hover:bg-opacity-90">Next: Service Completed</button>
                                     </form>
+                                {% else %}
+                                    <p class="text-gray-500">No further steps available</p>
                                 {% endif %}
                             </td>
+                            
+                            
                         </tr>
                     {% endfor %}
                 </tbody>                
@@ -130,6 +143,43 @@
             })
             .catch(error => console.error('Error:', error));
         });
+
+
+        document.querySelectorAll('.status-update-form').forEach(form => {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(this);
+
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const row = this.closest('tr'); // Get the current row
+                    row.querySelector('td:nth-child(6)').textContent = data.new_status; // Update the status column
+
+                    // Disable the current button and update the next step
+                    const button = this.querySelector('button');
+                    button.disabled = true;
+                    button.textContent = "Status Updated";
+
+                    // Optionally, you can hide or replace the button for further actions
+                } else {
+                    alert('Failed to update status: ' + data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+
+
     </script>
 </body>
 </html>
